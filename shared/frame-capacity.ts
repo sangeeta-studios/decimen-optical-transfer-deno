@@ -6,7 +6,7 @@
 // not 64. The sender has to catch that before it starts streaming, and tell
 // you which setting fixes it.
 
-import { HEADER_LEN } from "./protocol";
+import { HEADER_LEN } from "./protocol.ts";
 
 /** `k` is a u16 in the frame header. */
 export const MAX_SOURCE_BLOCKS = 0xffff;

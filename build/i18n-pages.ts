@@ -1,20 +1,19 @@
 import type { Plugin, ViteDevServer } from "vite";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { LOCALES, DEFAULT_LOCALE, type LocaleInfo } from "../shared/i18n/registry";
-import type { Messages } from "../shared/i18n/messages";
-import { messages as en } from "../shared/i18n/locales/en";
-import { messages as es } from "../shared/i18n/locales/es";
-import { messages as ptBr } from "../shared/i18n/locales/pt-br";
-import { messages as fr } from "../shared/i18n/locales/fr";
-import { messages as de } from "../shared/i18n/locales/de";
-import { messages as it } from "../shared/i18n/locales/it";
-import { messages as ru } from "../shared/i18n/locales/ru";
-import { messages as hi } from "../shared/i18n/locales/hi";
-import { messages as zhHans } from "../shared/i18n/locales/zh-hans";
-import { messages as ja } from "../shared/i18n/locales/ja";
-import { messages as ko } from "../shared/i18n/locales/ko";
-import { messages as ar } from "../shared/i18n/locales/ar";
+import { dirname, resolve } from "@std/path";
+import { LOCALES, DEFAULT_LOCALE, type LocaleInfo } from "../shared/i18n/registry.ts";
+import type { Messages } from "../shared/i18n/messages.ts";
+import { messages as en } from "../shared/i18n/locales/en.ts";
+import { messages as es } from "../shared/i18n/locales/es.ts";
+import { messages as ptBr } from "../shared/i18n/locales/pt-br.ts";
+import { messages as fr } from "../shared/i18n/locales/fr.ts";
+import { messages as de } from "../shared/i18n/locales/de.ts";
+import { messages as it } from "../shared/i18n/locales/it.ts";
+import { messages as ru } from "../shared/i18n/locales/ru.ts";
+import { messages as hi } from "../shared/i18n/locales/hi.ts";
+import { messages as zhHans } from "../shared/i18n/locales/zh-hans.ts";
+import { messages as ja } from "../shared/i18n/locales/ja.ts";
+import { messages as ko } from "../shared/i18n/locales/ko.ts";
+import { messages as ar } from "../shared/i18n/locales/ar.ts";
 
 /**
  * Hosted-site localization: one fully translated page tree per locale.
@@ -329,8 +328,7 @@ export function i18nPages(opts: I18nPagesOptions): Plugin {
           }
           const pagePart = (m[2] ?? "/").replace(/^\//, "") as "" | "send/" | "receive/";
           const sourcePath = pagePart === "" ? "index.html" : `${pagePart}index.html`;
-          const { readFileSync } = await import("node:fs");
-          const raw = readFileSync(resolve(server.config.root, sourcePath), "utf8");
+          const raw = await Deno.readTextFile(resolve(server.config.root, sourcePath));
           let html = await server.transformIndexHtml(`/${sourcePath}`, raw, req.originalUrl);
           html = translateMarkup(html, CATALOGS[locale.code]!, opts.tokens);
           // Dev assets live at their real dev paths; absolutize anything that
@@ -365,18 +363,18 @@ export function i18nPages(opts: I18nPagesOptions): Plugin {
         // strip — written straight over the file vite just emitted.
         let enPage = stampHtmlElement(html, LOCALES.find((l) => l.code === DEFAULT_LOCALE)!);
         enPage = insertBeforeHead(enPage, hreflangBlock(opts.siteUrl, pagePart));
-        writeFileSync(resolve(dir, fileName), enPage.replace(STRIP_RE, ""));
+        Deno.writeTextFileSync(resolve(dir, fileName), enPage.replace(STRIP_RE, ""));
 
         for (const locale of LOCALES) {
           if (locale.code === DEFAULT_LOCALE) continue;
           const target = resolve(dir, locale.code, fileName);
-          mkdirSync(dirname(target), { recursive: true });
-          writeFileSync(target, localizeBuiltPage(html, locale, pagePart, opts));
+          Deno.mkdirSync(dirname(target), { recursive: true });
+          Deno.writeTextFileSync(target, localizeBuiltPage(html, locale, pagePart, opts));
         }
       }
       for (const locale of LOCALES) {
         if (locale.code === DEFAULT_LOCALE) continue;
-        writeFileSync(
+        Deno.writeTextFileSync(
           resolve(dir, `manifest.${locale.code}.webmanifest`),
           localeManifest(locale, opts),
         );
@@ -385,7 +383,7 @@ export function i18nPages(opts: I18nPagesOptions): Plugin {
 
     // After everything (including the public/ copy): the real sitemap.
     closeBundle() {
-      writeFileSync(resolve(outDir, "sitemap.xml"), sitemap(opts.siteUrl));
+      Deno.writeTextFileSync(resolve(outDir, "sitemap.xml"), sitemap(opts.siteUrl));
     },
   };
 }

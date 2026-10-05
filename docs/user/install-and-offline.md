@@ -21,14 +21,14 @@ This is the shape to use on a phone: it keeps a real `https://` origin, which is
 
 ## Standalone files
 
-`npm run build:standalone` produces two pages with nothing external in them — no script src, no stylesheet, no fetch. The receiver carries the 940 KB decoder wasm as a `data:` URI, which is why it is 1.3 MB. Mail one to someone, drop it on a USB stick.
+`deno task build:standalone` produces two pages with nothing external in them — no script src, no stylesheet, no fetch. The receiver carries the 940 KB decoder wasm as a `data:` URI, which is why it is 1.3 MB. Mail one to someone, drop it on a USB stick.
 
 **The receiver's one caveat:** opened from `file://`, the page gets an opaque origin. Desktop Chrome and Firefox will generally prompt for the camera and work; **iOS Safari and Android Chrome will not give a local file a camera.** Since the receiver is usually the phone, serve the file over http(s) from anything — or use the hosted site's offline mode instead. The sender has no such problem; it works from `file://` everywhere.
 
 ## Demo mode
 
 ```bash
-npm run demo    # sender locked to the two bundled images
+deno task demo    # sender locked to the two bundled images
 ```
 
 No file picker, no text box — for a sending machine sitting unattended in front of people. This is the dev server with `VITE_DEMO=1`, not a hardened kiosk: anyone with the keyboard has devtools.

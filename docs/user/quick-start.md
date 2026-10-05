@@ -11,9 +11,11 @@ Nothing decoding? See [Troubleshooting](troubleshooting.md).
 
 ## Running it yourself
 
+Needs [Deno](https://deno.com/) 2.
+
 ```bash
-npm install
-npm run dev     # https dev server — accept the self-signed cert warning once
+deno install
+deno task dev    # https dev server — accept the self-signed cert warning once
 ```
 
 Open `https://localhost:5173/send/` on the sender and the printed `Network` URL (`https://<lan-ip>:5173/receive/`) on the phone. The dev server is https-only because browsers remove the camera API on insecure origins — see [Install & offline](install-and-offline.md) for the details and all the other ways to run it.

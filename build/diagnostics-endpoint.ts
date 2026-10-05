@@ -1,10 +1,9 @@
 import type { Plugin } from "vite";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { concat } from "@std/bytes/concat";
+import { fromFileUrl, resolve } from "@std/path";
 
 /**
- * Dev-server sink for the receiver's end-of-run report (npm run diagnostics).
+ * Dev-server sink for the receiver's end-of-run report (deno task diagnostics).
  *
  * The receiver POSTs one JSON object per completed transfer to /__diagnostics;
  * this middleware pretty-prints it into the terminal running the dev server,
@@ -33,7 +32,7 @@ function formatReport(report: Record<string, unknown>): string {
 }
 
 export function diagnosticsEndpoint(version: string): Plugin {
-  const runsDir = resolve(fileURLToPath(new URL("../scratch/diagnostics-runs", import.meta.url)));
+  const runsDir = resolve(fromFileUrl(new URL("../scratch/diagnostics-runs", import.meta.url)));
   return {
     name: "diagnostics-endpoint",
     apply: "serve",
@@ -44,19 +43,19 @@ export function diagnosticsEndpoint(version: string): Plugin {
           res.end();
           return;
         }
-        const chunks: Buffer[] = [];
-        req.on("data", (chunk: Buffer) => chunks.push(chunk));
+        const chunks: Uint8Array[] = [];
+        req.on("data", (chunk: Uint8Array) => chunks.push(chunk));
         req.on("end", () => {
-          const body = Buffer.concat(chunks).toString("utf8");
+          const body = new TextDecoder().decode(concat(chunks));
           try {
             const report = JSON.parse(body) as Record<string, unknown>;
             const role = typeof report.role === "string" ? report.role : "run";
             const receivedAt = new Date().toISOString();
             report._meta = { appVersion: version, receivedAt };
             server.config.logger.info(`\n[diagnostics] ${role} report\n${formatReport(report)}`);
-            mkdirSync(runsDir, { recursive: true });
+            Deno.mkdirSync(runsDir, { recursive: true });
             const file = resolve(runsDir, `${receivedAt.replace(/[:.]/g, "-")}-${role}.json`);
-            writeFileSync(file, JSON.stringify(report, null, 2) + "\n");
+            Deno.writeTextFileSync(file, JSON.stringify(report, null, 2) + "\n");
             server.config.logger.info(`[diagnostics] saved ${file}`);
           } catch {
             server.config.logger.warn(`[diagnostics] unparseable report: ${body.slice(0, 200)}`);

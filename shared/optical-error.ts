@@ -1,6 +1,6 @@
 // User-facing failures thrown by the protocol layer, carried as CODES.
 //
-// protocol.ts and snippet.ts run in workers and in node tests, so they must
+// protocol.ts and snippet.ts run in workers and in Deno tests, so they must
 // never import the i18n runtime (which touches document/navigator). They
 // throw OpticalError instead: the `code` is what the UI localizes at display
 // time (shared/i18n's localizeError), and the English message — derived from
@@ -8,7 +8,7 @@
 // what tests, logs, and non-localized surfaces see. One table, so the thrown
 // text and the en catalog cannot drift.
 
-import type { Messages } from "./i18n/messages";
+import type { Messages } from "./i18n/messages.ts";
 
 export type ErrorMessages = Messages["errors"];
 export type OpticalErrorCode = keyof ErrorMessages;

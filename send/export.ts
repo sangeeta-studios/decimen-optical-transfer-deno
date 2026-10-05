@@ -5,7 +5,7 @@
 // the file exactly as if it were watching the live sender.
 //
 // Deliberately DOM-free (bytes in, Blob parts out) so the whole pipeline
-// golden-tests in Node beside the rest of the stack; the page supplies the
+// golden-tests under Deno beside the rest of the stack; the page supplies the
 // progress/cancel hooks and does the Blob-and-download dance.
 //
 // Where this mirrors the live sender, and where it deliberately does not:
@@ -24,14 +24,14 @@
 //    frame of a cycle simply carries the next repair frames rather than
 //    leaving grid cells empty.
 
-import { LTEncoder, cycleLength } from "../shared/fountain";
-import { blockLength, sourceBlockCount } from "../shared/frame-capacity";
-import { fnv1a, packFrame, type FrameHeader } from "../shared/protocol";
-import { rasterizeQrGrid, type QrGridRaster } from "../shared/qr-raster";
-import { ApngEncoder } from "../shared/apng";
-import { deflate, encodeBilevelPng, packBilevelScanlines } from "../shared/png";
-import { zipStore, type ZipEntry } from "../shared/zip";
-import { QUIET_ZONE_MODULES, createFrameQr, type EccLevel } from "./qr-frame";
+import { LTEncoder, cycleLength } from "../shared/fountain.ts";
+import { blockLength, sourceBlockCount } from "../shared/frame-capacity.ts";
+import { fnv1a, packFrame, type FrameHeader } from "../shared/protocol.ts";
+import { rasterizeQrGrid, type QrGridRaster } from "../shared/qr-raster.ts";
+import { ApngEncoder } from "../shared/apng.ts";
+import { deflate, encodeBilevelPng, packBilevelScanlines } from "../shared/png.ts";
+import { zipStore, type ZipEntry } from "../shared/zip.ts";
+import { QUIET_ZONE_MODULES, createFrameQr, type EccLevel } from "./qr-frame.ts";
 
 export type ExportFormat = "apng" | "zip";
 

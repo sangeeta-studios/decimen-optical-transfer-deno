@@ -3,21 +3,21 @@
 ## Scripts
 
 ```bash
-npm run dev               # https dev server with HMR (self-signed cert)
-npm run serve             # build, then serve the production bundle
-npm run demo              # dev server with VITE_DEMO=1 — sender locked to bundled payloads
-npm run diagnostics       # dev server + per-transfer run reports, saved for benchmark promotion — see diagnostics.md
-npm run benchmark         # diagnostics + sender locked to the canonical 1 MB benchmark payload
-npm run benchmark:promote # declare a captured run a record (updates benchmarks/ + README)
-npm run benchmark:readme  # re-render the README "Measured speed" section from records.json
-npm test                  # golden wire-format vectors and unit tests (node --test via tsx)
-npm run build             # typecheck (app + node configs), hosted site → dist/
-npm run build:standalone  # both self-contained pages → dist-standalone/
-npm run build:all         # everything
-npm run icons             # regenerate public/ icons from the logo (needs librsvg)
+deno task dev               # https dev server with HMR (self-signed cert)
+deno task serve             # build, then serve the production bundle
+deno task demo              # dev server with VITE_DEMO=1 — sender locked to bundled payloads
+deno task diagnostics       # dev server + per-transfer run reports, saved for benchmark promotion — see diagnostics.md
+deno task benchmark         # diagnostics + sender locked to the canonical 1 MB benchmark payload
+deno task benchmark:promote # declare a captured run a record (updates benchmarks/ + README)
+deno task benchmark:readme  # re-render the README "Measured speed" section from records.json
+deno task test              # golden wire-format vectors and unit tests (deno test)
+deno task build             # typecheck (app + build passes), hosted site → dist/
+deno task build:standalone  # both self-contained pages → dist-standalone/
+deno task build:all         # everything
+deno task icons             # regenerate public/ icons from the logo (needs librsvg)
 ```
 
-`npm run icons` strips the logo SVG's comments before rasterizing (a `--` inside a comment is invalid XML that browsers tolerate but librsvg rejects) and does exact-match surgery on the markup, throwing if the logo changes shape.
+`deno task icons` strips the logo SVG's comments before rasterizing (a `--` inside a comment is invalid XML that browsers tolerate but librsvg rejects) and does exact-match surgery on the markup, throwing if the logo changes shape.
 
 `VITE_SITE_URL` overrides the published URL baked into social cards and the share dialogs (default `https://decimen.app/`, trailing slash required).
 
@@ -35,7 +35,7 @@ The site builds with `base: "./"`, so it works under a project subpath with no c
 
 ## Release pattern
 
-1. `git checkout -b release/vX.Y.Z`, bump version (`npm version X.Y.Z --no-git-tag-version`), commit.
+1. `git checkout -b release/vX.Y.Z`, bump `version` in `deno.json`, commit.
 2. Feature work + docs on the branch; PR to `main`.
 3. Tag `vX.Y.Z` after merge — `release.yml` builds and attaches the artifacts.
 

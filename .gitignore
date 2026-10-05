@@ -5,3 +5,9 @@ dist/
 dist-standalone/
 artifacts/
 scratch/
+# Under Deno (no package.json), Vite keeps its cache — including basic-ssl's
+# generated dev certificate and key — in .vite/ rather than node_modules/.vite,
+# and bundles the config to a temp file beside vite.config.ts. Both must stay
+# out of git, and out of the build-id dirty check.
+.vite/
+vite.config.ts.timestamp-*.mjs

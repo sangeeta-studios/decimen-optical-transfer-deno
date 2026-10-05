@@ -5,8 +5,8 @@
 // wires behaviour to it.
 
 import QRCode from "qrcode";
-import { closeOnBackdropClick } from "./dialog";
-import { msg } from "./i18n";
+import { closeOnBackdropClick } from "./dialog.ts";
+import { msg } from "./i18n/index.ts";
 
 /** Wire the page's share dialog; returns the opener. */
 export function wireShareDialog(): () => void {

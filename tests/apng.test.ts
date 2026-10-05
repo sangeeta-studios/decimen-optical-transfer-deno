@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { assert, assertEquals, assertMatch, assertRejects, assertStrictEquals, assertThrows } from "@std/assert";
 import { ApngEncoder } from "../shared/apng.ts";
 import { PNG_SIGNATURE, concatBytes, crc32, packBilevelScanlines } from "../shared/png.ts";
 
@@ -14,16 +13,16 @@ async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
 }
 
 function walkChunks(bytes: Uint8Array): { type: string; data: Uint8Array }[] {
-  assert.deepEqual([...bytes.subarray(0, 8)], [...PNG_SIGNATURE], "PNG signature");
+  assertEquals([...bytes.subarray(0, 8)], [...PNG_SIGNATURE], "PNG signature");
   const chunks: { type: string; data: Uint8Array }[] = [];
   let at = 8;
   while (at < bytes.length) {
     const dv = new DataView(bytes.buffer, bytes.byteOffset + at);
     const length = dv.getUint32(0);
     const type = String.fromCharCode(...bytes.subarray(at + 4, at + 8));
-    assert.ok(at + 12 + length <= bytes.length, `${type} chunk overruns the file`);
+    assert(at + 12 + length <= bytes.length, `${type} chunk overruns the file`);
     const data = bytes.subarray(at + 8, at + 8 + length);
-    assert.equal(dv.getUint32(8 + length), crc32(bytes.subarray(at + 4, at + 8 + length)), `${type} CRC`);
+    assertStrictEquals(dv.getUint32(8 + length), crc32(bytes.subarray(at + 4, at + 8 + length)), `${type} CRC`);
     chunks.push({ type, data });
     at += 12 + length;
   }
@@ -42,58 +41,58 @@ async function encodeSample(): Promise<Uint8Array> {
   return concatBytes(encoder.finish());
 }
 
-test("chunk order: IHDR, acTL, then fcTL before every frame, IEND last", async () => {
+Deno.test("chunk order: IHDR, acTL, then fcTL before every frame, IEND last", async () => {
   const chunks = walkChunks(await encodeSample());
-  assert.deepEqual(
+  assertEquals(
     chunks.map((c) => c.type),
     ["IHDR", "PLTE", "acTL", "fcTL", "IDAT", "fcTL", "fdAT", "fcTL", "fdAT", "IEND"],
   );
 });
 
-test("IHDR carries the scaled dimensions of a bilevel image", async () => {
+Deno.test("IHDR carries the scaled dimensions of a bilevel image", async () => {
   const ihdr = walkChunks(await encodeSample())[0]!.data;
   const dv = new DataView(ihdr.buffer, ihdr.byteOffset);
-  assert.equal(dv.getUint32(0), 4); // 2 × scale 2
-  assert.equal(dv.getUint32(4), 4);
-  assert.equal(ihdr[8], 1); // bit depth
-  assert.equal(ihdr[9], 3); // palette — ffmpeg's APNG decoder refuses 1-bit gray
+  assertStrictEquals(dv.getUint32(0), 4); // 2 × scale 2
+  assertStrictEquals(dv.getUint32(4), 4);
+  assertStrictEquals(ihdr[8], 1); // bit depth
+  assertStrictEquals(ihdr[9], 3); // palette — ffmpeg's APNG decoder refuses 1-bit gray
 });
 
-test("acTL declares the frame count and loops forever", async () => {
+Deno.test("acTL declares the frame count and loops forever", async () => {
   const actl = walkChunks(await encodeSample()).find((c) => c.type === "acTL")!.data;
   const dv = new DataView(actl.buffer, actl.byteOffset);
-  assert.equal(dv.getUint32(0), 3);
-  assert.equal(dv.getUint32(4), 0); // num_plays 0 = infinite
+  assertStrictEquals(dv.getUint32(0), 3);
+  assertStrictEquals(dv.getUint32(4), 0); // num_plays 0 = infinite
 });
 
-test("fcTL: full frames at exactly 1/fps, one sequence counter with fdAT", async () => {
+Deno.test("fcTL: full frames at exactly 1/fps, one sequence counter with fdAT", async () => {
   const chunks = walkChunks(await encodeSample());
   const fctls = chunks.filter((c) => c.type === "fcTL").map((c) => c.data);
   const fdats = chunks.filter((c) => c.type === "fdAT").map((c) => c.data);
   const sequenceOf = (data: Uint8Array) => new DataView(data.buffer, data.byteOffset).getUint32(0);
-  assert.deepEqual(fctls.map(sequenceOf), [0, 1, 3]);
-  assert.deepEqual(fdats.map(sequenceOf), [2, 4]);
+  assertEquals(fctls.map(sequenceOf), [0, 1, 3]);
+  assertEquals(fdats.map(sequenceOf), [2, 4]);
   for (const data of fctls) {
     const dv = new DataView(data.buffer, data.byteOffset);
-    assert.equal(dv.getUint32(4), 4); // width
-    assert.equal(dv.getUint32(8), 4); // height
-    assert.equal(dv.getUint32(12), 0); // x offset
-    assert.equal(dv.getUint32(16), 0); // y offset
-    assert.equal(dv.getUint16(20), 1); // delay numerator
-    assert.equal(dv.getUint16(22), 10); // delay denominator = fps
-    assert.equal(data[24], 0); // dispose NONE
-    assert.equal(data[25], 0); // blend SOURCE
+    assertStrictEquals(dv.getUint32(4), 4); // width
+    assertStrictEquals(dv.getUint32(8), 4); // height
+    assertStrictEquals(dv.getUint32(12), 0); // x offset
+    assertStrictEquals(dv.getUint32(16), 0); // y offset
+    assertStrictEquals(dv.getUint16(20), 1); // delay numerator
+    assertStrictEquals(dv.getUint16(22), 10); // delay denominator = fps
+    assertStrictEquals(data[24], 0); // dispose NONE
+    assertStrictEquals(data[25], 0); // blend SOURCE
   }
 });
 
-test("every frame inflates to its packed scanlines", async () => {
+Deno.test("every frame inflates to its packed scanlines", async () => {
   const chunks = walkChunks(await encodeSample());
   const streams = [
     chunks.find((c) => c.type === "IDAT")!.data,
     ...chunks.filter((c) => c.type === "fdAT").map((c) => c.data.subarray(4)),
   ];
   for (const [i, stream] of streams.entries()) {
-    assert.deepEqual(
+    assertEquals(
       [...(await inflate(stream))],
       [...packBilevelScanlines(2, 2, FRAMES[i]!, 2)],
       `frame ${i}`,
@@ -101,21 +100,23 @@ test("every frame inflates to its packed scanlines", async () => {
   }
 });
 
-test("the declared frame count is enforced in both directions", async () => {
+Deno.test("the declared frame count is enforced in both directions", async () => {
   const encoder = new ApngEncoder({ width: 1, height: 1, scale: 1, fps: 1, frameCount: 2 });
   await encoder.addFrame([WHITE]);
-  assert.throws(() => encoder.finish(), /declared 2 frames, got 1/);
+  assertMatch(assertThrows(() => encoder.finish(), Error).message, /declared 2 frames, got 1/);
   await encoder.addFrame([BLACK]);
-  await assert.rejects(encoder.addFrame([WHITE]), /more frames than the 2 declared/);
+  assertMatch((await assertRejects(() => encoder.addFrame([WHITE]), Error)).message, /more frames than the 2 declared/);
   encoder.finish();
-  assert.throws(() => encoder.finish(), /finish\(\) called twice/);
-  await assert.rejects(encoder.addFrame([WHITE]), /after finish/);
+  assertMatch(assertThrows(() => encoder.finish(), Error).message, /finish\(\) called twice/);
+  assertMatch((await assertRejects(() => encoder.addFrame([WHITE]), Error)).message, /after finish/);
 });
 
-test("an fps outside the u16 delay denominator is refused", () => {
-  assert.throws(() => new ApngEncoder({ width: 1, height: 1, scale: 1, fps: 0, frameCount: 1 }), /fps/);
-  assert.throws(
-    () => new ApngEncoder({ width: 1, height: 1, scale: 1, fps: 65536, frameCount: 1 }),
-    /fps/,
-  );
+Deno.test("an fps outside the u16 delay denominator is refused", () => {
+  for (const fps of [0, 65536]) {
+    const error = assertThrows(
+      () => new ApngEncoder({ width: 1, height: 1, scale: 1, fps, frameCount: 1 }),
+      Error,
+    );
+    assertMatch(error.message, /fps/);
+  }
 });

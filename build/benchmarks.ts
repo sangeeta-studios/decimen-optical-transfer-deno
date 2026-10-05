@@ -13,16 +13,14 @@
 // construction. The top-level `sustained` is the best record across
 // categories — the badge and the README intro read it.
 //
-//   npm run benchmark:promote               # scan captured runs, take the best
-//   npm run benchmark:promote -- <run.json> # consider one specific run
-//   npm run benchmark:readme                # re-render the README section
-import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { createInterface } from "node:readline/promises";
-import { fileURLToPath } from "node:url";
+//   deno task benchmark:promote             # scan captured runs, take the best
+//   deno task benchmark:promote <run.json>  # consider one specific run
+//   deno task benchmark:readme              # re-render the README section
+import { encodeHex } from "@std/encoding/hex";
+import { existsSync } from "@std/fs/exists";
+import { fromFileUrl, resolve } from "@std/path";
 
-const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const ROOT = fromFileUrl(new URL("..", import.meta.url));
 const RECORDS_PATH = resolve(ROOT, "benchmarks/records.json");
 const RUNS_DIR = resolve(ROOT, "benchmarks/runs");
 const CAPTURE_DIR = resolve(ROOT, "scratch/diagnostics-runs");
@@ -68,7 +66,7 @@ interface Records {
 }
 
 function loadRecords(): Records {
-  return JSON.parse(readFileSync(RECORDS_PATH, "utf8")) as Records;
+  return JSON.parse(Deno.readTextFileSync(RECORDS_PATH)) as Records;
 }
 
 /** Recompute the top-level overall-best pointer from the categories. */
@@ -96,7 +94,7 @@ interface Registry {
 
 function loadRegistry(): Registry {
   if (!existsSync(REGISTRY_PATH)) return { devices: [], uaMap: {} };
-  return JSON.parse(readFileSync(REGISTRY_PATH, "utf8")) as Registry;
+  return JSON.parse(Deno.readTextFileSync(REGISTRY_PATH)) as Registry;
 }
 
 function guessType(ua: unknown): string {
@@ -213,7 +211,7 @@ function loadCaptured(paths: string[]): { receivers: CapturedRun[]; senderUa: Ma
   for (const path of paths) {
     let report: Report;
     try {
-      report = JSON.parse(readFileSync(path, "utf8")) as Report;
+      report = JSON.parse(Deno.readTextFileSync(path)) as Report;
     } catch {
       continue; // half-written or foreign file — not a candidate
     }
@@ -226,9 +224,9 @@ function loadCaptured(paths: string[]): { receivers: CapturedRun[]; senderUa: Ma
 async function promote(explicitPath?: string): Promise<void> {
   const records = loadRecords();
   const canonical = records.payload;
-  const onDisk = createHash("sha256")
-    .update(readFileSync(resolve(ROOT, canonical.file)))
-    .digest("hex");
+  const onDisk = encodeHex(
+    await crypto.subtle.digest("SHA-256", Deno.readFileSync(resolve(ROOT, canonical.file))),
+  );
   if (onDisk !== canonical.sha256)
     throw new Error(
       `${canonical.file} no longer matches the pinned sha256 in records.json — ` +
@@ -237,8 +235,8 @@ async function promote(explicitPath?: string): Promise<void> {
 
   // Sender announcements are read from the capture dir even for an explicit
   // run file, so the sending device can still be named.
-  const capturedPaths = readdirSync(CAPTURE_DIR, { withFileTypes: true })
-    .filter((e) => e.isFile() && e.name.endsWith(".json"))
+  const capturedPaths = [...Deno.readDirSync(CAPTURE_DIR)]
+    .filter((e) => e.isFile && e.name.endsWith(".json"))
     .map((e) => resolve(CAPTURE_DIR, e.name))
     .sort();
   const { receivers, senderUa } = loadCaptured(
@@ -258,17 +256,17 @@ async function promote(explicitPath?: string): Promise<void> {
   if (eligible.length === 0)
     throw new Error(
       "no eligible runs — record runs must complete successfully and transfer " +
-        `the canonical ${canonical.file} (npm run benchmark)`,
+        `the canonical ${canonical.file} (deno task benchmark)`,
     );
 
   // Devices resolve first (registry list, remembered per UA) because the
   // category a run competes in comes from its device types. Memoized per
   // UA-pair side, so a session with one hardware setup asks at most twice.
   const registry = loadRegistry();
-  const rl = process.stdin.isTTY
-    ? createInterface({ input: process.stdin, output: process.stdout })
+  // prompt() supplies its own trailing space, so the question drops its own.
+  const ask: Ask | null = Deno.stdin.isTerminal()
+    ? (q) => Promise.resolve(prompt(q.trimEnd()) ?? "")
     : null;
-  const ask: Ask | null = rl ? (q) => rl.question(q) : null;
   const memo = new Map<string, DeviceEntry>();
   const resolveDevice = async (side: string, ua: unknown): Promise<DeviceEntry> => {
     const key = `${side} ${String(ua)}`;
@@ -298,7 +296,6 @@ async function promote(explicitPath?: string): Promise<void> {
       receiverDevice,
     });
   }
-  rl?.close();
 
   const toEntry = (j: Judged): RecordEntry => {
     const report = j.run.report;
@@ -338,9 +335,9 @@ async function promote(explicitPath?: string): Promise<void> {
   if (taken.length === 0)
     throw new Error("beats no category record — nothing promoted");
 
-  mkdirSync(RUNS_DIR, { recursive: true });
+  Deno.mkdirSync(RUNS_DIR, { recursive: true });
   for (const { j, entry } of taken) {
-    copyFileSync(j.run.path, resolve(ROOT, entry.runFile));
+    Deno.copyFileSync(j.run.path, resolve(ROOT, entry.runFile));
     records.categories[entry.category] = entry;
     records.history.push(entry);
     console.log(
@@ -349,8 +346,8 @@ async function promote(explicitPath?: string): Promise<void> {
     );
   }
   refreshBest(records);
-  writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2) + "\n");
-  writeFileSync(RECORDS_PATH, JSON.stringify(records, null, 2) + "\n");
+  Deno.writeTextFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2) + "\n");
+  Deno.writeTextFileSync(RECORDS_PATH, JSON.stringify(records, null, 2) + "\n");
   renderReadme(records);
 }
 
@@ -377,8 +374,8 @@ function renderReadme(records: Records): void {
   const entries = Object.values(records.categories).filter((e): e is RecordEntry => e !== null);
   if (entries.length === 0) {
     lines.push(
-      "_No captured records yet — `npm run benchmark`, then " +
-        "`npm run benchmark:promote` (see [Diagnostics](docs/technical/diagnostics.md))._",
+      "_No captured records yet — `deno task benchmark`, then " +
+        "`deno task benchmark:promote` (see [Diagnostics](docs/technical/diagnostics.md))._",
     );
   } else {
     if (records.sustained) lines.push(`![sustained record](${BADGE_URL})`, "");
@@ -394,7 +391,7 @@ function renderReadme(records: Records): void {
     );
   }
 
-  const readme = readFileSync(README_PATH, "utf8");
+  const readme = Deno.readTextFileSync(README_PATH);
   const begin = readme.indexOf(BEGIN);
   const end = readme.indexOf(END);
   if (begin === -1 || end === -1 || end < begin)
@@ -410,7 +407,7 @@ function renderReadme(records: Records): void {
     `$1${records.sustained ? `${records.sustained.sustainedKBs} KB/s sustained` : "unmeasured"}$2`,
   );
   if (next !== readme) {
-    writeFileSync(README_PATH, next);
+    Deno.writeTextFileSync(README_PATH, next);
     console.log("README benchmarks section rewritten");
   } else {
     console.log("README benchmarks section already current");
@@ -421,10 +418,10 @@ const USAGE =
   "usage: benchmarks.ts promote [run.json]   # no arg: scan captured runs, take the best\n" +
   "       benchmarks.ts readme";
 
-const [cmd, maybePath] = process.argv.slice(2);
+const [cmd, maybePath] = Deno.args;
 if (cmd === "promote") await promote(maybePath);
 else if (cmd === "readme") renderReadme(loadRecords());
 else {
   console.error(USAGE);
-  process.exit(2);
+  Deno.exit(2);
 }

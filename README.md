@@ -76,18 +76,20 @@ Dropped frames cost time, never correctness.
 
 ## Run it yourself
 
+Needs [Deno](https://deno.com/) 2 (the version CI uses is pinned in `.dvmrc`).
+
 ```bash
-npm install
-npm run dev               # https dev server with HMR
-npm run serve             # build, then serve the production bundle
-npm run demo              # demo mode: only the bundled payloads can be sent
-npm run diagnostics       # dev server + per-transfer run reports in the terminal
-npm run benchmark         # diagnostics + sender locked to the canonical 1 MB payload
-npm run benchmark:promote # declare your best captured run a record (updates the table above)
-npm test                  # golden wire-format vectors and unit tests
-npm run build             # the hosted site → dist/
-npm run build:standalone  # both self-contained pages → dist-standalone/
-npm run build:all         # everything
+deno install
+deno task dev               # https dev server with HMR
+deno task serve             # build, then serve the production bundle
+deno task demo              # demo mode: only the bundled payloads can be sent
+deno task diagnostics       # dev server + per-transfer run reports in the terminal
+deno task benchmark         # diagnostics + sender locked to the canonical 1 MB payload
+deno task benchmark:promote # declare your best captured run a record (updates the table above)
+deno task test              # golden wire-format vectors and unit tests
+deno task build             # the hosted site → dist/
+deno task build:standalone  # both self-contained pages → dist-standalone/
+deno task build:all         # everything
 ```
 
 Open `https://localhost:5173/send/` on the sending device and the printed

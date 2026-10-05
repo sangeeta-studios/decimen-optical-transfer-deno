@@ -20,7 +20,7 @@ The three HTML pages stay readable English, with translatable nodes marked
 `data-i18n="dot.path"` (`data-i18n-html` for values carrying inline markup,
 `data-i18n-attr="attr:path"` for attributes).
 
-**Hosted** (`npm run build`): `build/i18n-pages.ts` emits a fully translated
+**Hosted** (`deno task build`): `build/i18n-pages.ts` emits a fully translated
 page tree per locale — `/es/`, `/es/send/`, `/ar/receive/`, … — with
 `<html lang>` (and `dir="rtl"` where the registry says so), per-locale
 canonical URLs, hreflang alternates on every page, a per-locale PWA manifest
@@ -30,7 +30,7 @@ relative because the tree is mirrored. The markers are stripped and each page
 is stamped `data-i18n-static="<code>"`: on hosted pages the **URL owns the
 locale**, and the footer switcher navigates between trees.
 
-**Standalone** (`npm run build:standalone`): the single files keep their
+**Standalone** (`deno task build:standalone`): the single files keep their
 markers and embed *all* catalogs (`inlineDynamicImports`), because a file on
 a USB stick cannot know its reader's language at build time. At open,
 `shared/i18n/index.ts` resolves stored choice → `navigator.languages` →
@@ -64,7 +64,7 @@ Two message groups are cross-client contracts, not mere UI copy:
 - **Protocol errors**: `shared/optical-error.ts` throws codes, with the
   English text defined once (`ENGLISH_ERRORS`) and re-exported by the en
   catalog, so the thrown message and the catalog cannot drift. The UI
-  localizes at display time (`localizeError`); workers and node tests never
+  localizes at display time (`localizeError`); workers and tests never
   touch the i18n layer.
 
 ## Adding a language
@@ -74,7 +74,7 @@ Two message groups are cross-client contracts, not mere UI copy:
    Read the translator notes at the top of `shared/i18n/messages.ts` first.
 3. Add its loader line in `shared/i18n/index.ts` and its import in
    `build/i18n-pages.ts` and `tests/i18n.test.ts`.
-4. `npm test && npm run build:all`. The tests, the English-drift check, and
+4. `deno task test && deno task build:all`. The tests, the English-drift check, and
    the emitted tree are the review scaffolding.
 
 Everything else — the page tree, hreflang, sitemap, manifest, switcher entry,

@@ -4,8 +4,8 @@
 // readable by any camera pointed at it. The only property here is that no
 // network sits between the two devices.
 
-import { packFile, type OpticalFile, type PackedOpticalFile } from "./protocol";
-import { OpticalError } from "./optical-error";
+import { packFile, type OpticalFile, type PackedOpticalFile } from "./protocol.ts";
+import { OpticalError } from "./optical-error.ts";
 
 export const SNIPPET_MEDIA_TYPE = "application/vnd.decimen.snippet";
 export const SNIPPET_FILE_NAME = "snippet.txt";

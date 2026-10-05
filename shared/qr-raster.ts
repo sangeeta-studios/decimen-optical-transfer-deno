@@ -1,6 +1,6 @@
 // Paint a QR module matrix into a pixel buffer, quiet zone included.
 //
-// Pure so it can be golden-tested in Node, where ImageData does not exist:
+// Pure so it can be golden-tested outside the browser, without ImageData:
 // the pixels are RGBA bytes viewed as one little-endian u32 per pixel, which
 // is exactly an ImageData buffer — the sender wraps the result with
 // `new ImageData(new Uint8ClampedArray(pixels.buffer), width, height)` at no

@@ -4,19 +4,19 @@
 // inlined, landed after it — a TDZ crash on open). Swapped in at resolve time
 // by build/use-inline-variants.ts; the hosted build never parses this file.
 
-import type { Messages } from "./messages";
-import * as en from "./locales/en";
-import * as es from "./locales/es";
-import * as ptBr from "./locales/pt-br";
-import * as fr from "./locales/fr";
-import * as de from "./locales/de";
-import * as it from "./locales/it";
-import * as ru from "./locales/ru";
-import * as hi from "./locales/hi";
-import * as zhHans from "./locales/zh-hans";
-import * as ja from "./locales/ja";
-import * as ko from "./locales/ko";
-import * as ar from "./locales/ar";
+import type { Messages } from "./messages.ts";
+import * as en from "./locales/en.ts";
+import * as es from "./locales/es.ts";
+import * as ptBr from "./locales/pt-br.ts";
+import * as fr from "./locales/fr.ts";
+import * as de from "./locales/de.ts";
+import * as it from "./locales/it.ts";
+import * as ru from "./locales/ru.ts";
+import * as hi from "./locales/hi.ts";
+import * as zhHans from "./locales/zh-hans.ts";
+import * as ja from "./locales/ja.ts";
+import * as ko from "./locales/ko.ts";
+import * as ar from "./locales/ar.ts";
 
 export const loaders: Record<string, () => Promise<{ messages: Messages }>> = {
   en: () => Promise.resolve(en),

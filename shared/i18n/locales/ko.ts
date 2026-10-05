@@ -3,8 +3,8 @@
 // Once a native-speaker review lands, flip `reviewed: true` on the "ko" row in
 // shared/i18n/registry.ts to remove the on-page unreviewed note.
 
-import type { Messages } from "../messages";
-import { localeByCode } from "../registry";
+import type { Messages } from "../messages.ts";
+import { localeByCode } from "../registry.ts";
 
 export const messages: Messages = {
   meta: localeByCode("ko")!,
@@ -179,7 +179,7 @@ export const messages: Messages = {
     settingsApplied: "카메라를 시작할 때 적용됩니다.",
     errSecureContext:
       "카메라에는 보안 컨텍스트가 필요합니다 — 다른 기기에서 카메라를 사용하려면 " +
-      "이 페이지를 https로 제공해야 합니다. `npm run dev`는 이미 https로 제공합니다.",
+      "이 페이지를 https로 제공해야 합니다. `deno task dev`는 이미 https로 제공합니다.",
     errPermissionDenied:
       "카메라 권한이 거부되었습니다 — 권한을 허용한 뒤 카메라 시작을 다시 누르세요.",
     errCameraGone:

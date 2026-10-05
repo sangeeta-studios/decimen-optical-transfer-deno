@@ -2,7 +2,7 @@
 //
 // Every locale catalog (locales/<code>.ts) implements this. TypeScript is the
 // completeness check: a locale missing a key, or carrying a stray one, fails
-// `npm run build` — the same fail-loud rule htmlTokens() applies to %TOKENS%.
+// `deno task build` — the same fail-loud rule htmlTokens() applies to %TOKENS%.
 //
 // Two kinds of entry:
 //   - strings: static copy. Keys referenced from HTML via data-i18n="dot.path"
@@ -25,7 +25,7 @@
 //   - The tone of the English source is plain, direct, and a little dry.
 //     Match it. When in doubt, be clear rather than literal.
 
-import type { LocaleInfo } from "./registry";
+import type { LocaleInfo } from "./registry.ts";
 
 export interface Messages {
   /** This catalog's row in the registry — import it, never restate it. */

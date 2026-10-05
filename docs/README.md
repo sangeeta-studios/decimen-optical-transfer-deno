@@ -17,4 +17,4 @@
 - [Golden vectors](technical/golden-vectors.md) — conformance bytes for a second implementation. A diff here is a wire change.
 - [Platform quirks](technical/platform-quirks.md) — the hard-won iOS/Android/Safari details baked into the code.
 - [Build & release](technical/build-and-release.md) — scripts, build modes, CI, releasing.
-- [Diagnostics](technical/diagnostics.md) — the `npm run diagnostics` run rig: per-transfer reports, what the numbers attribute blame to.
+- [Diagnostics](technical/diagnostics.md) — the `deno task diagnostics` run rig: per-transfer reports, what the numbers attribute blame to.

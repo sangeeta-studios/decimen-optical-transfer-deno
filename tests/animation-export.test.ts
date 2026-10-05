@@ -3,10 +3,9 @@
 // frame pipeline produces for the same seqs, and the seq stream itself must
 // complete a fountain decode. Together with transfer.test.ts (which proves
 // those rasters' wire bytes decode end to end), that pins the exporter to the
-// live stream without needing a QR reader in Node.
+// live stream without needing a QR reader in the test runtime.
 
-import assert from "node:assert/strict";
-import test from "node:test";
+import { assert, assertEquals, assertMatch, assertRejects, assertStrictEquals } from "@std/assert";
 import {
   ZIP_MAX_FRAMES,
   estimateExportBytes,
@@ -40,7 +39,7 @@ async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
 }
 
 function chunksOf(bytes: Uint8Array): { type: string; data: Uint8Array }[] {
-  assert.deepEqual([...bytes.subarray(0, 8)], [...PNG_SIGNATURE]);
+  assertEquals([...bytes.subarray(0, 8)], [...PNG_SIGNATURE]);
   const chunks: { type: string; data: Uint8Array }[] = [];
   let at = 8;
   while (at < bytes.length) {
@@ -93,16 +92,16 @@ function expectedScanlines(
   return frames;
 }
 
-test("planExport: cycles of 2k fountain frames, grid cells always filled", () => {
+Deno.test("planExport: cycles of 2k fountain frames, grid cells always filled", () => {
   // 1200 bytes at 500 bytes/frame → blockLen 478 → k = 3 → cycle length 6.
-  assert.deepEqual(planExport(1200, FRAME_BYTES, 1, 1), { k: 3, animationFrames: 6, seqCount: 6 });
-  assert.deepEqual(planExport(1200, FRAME_BYTES, 2, 1), { k: 3, animationFrames: 3, seqCount: 6 });
+  assertEquals(planExport(1200, FRAME_BYTES, 1, 1), { k: 3, animationFrames: 6, seqCount: 6 });
+  assertEquals(planExport(1200, FRAME_BYTES, 2, 1), { k: 3, animationFrames: 3, seqCount: 6 });
   // A grid that does not divide the cycle rounds up and renders extra seqs.
-  assert.deepEqual(planExport(1200, FRAME_BYTES, 4, 1), { k: 3, animationFrames: 2, seqCount: 8 });
-  assert.deepEqual(planExport(1200, FRAME_BYTES, 2, 3), { k: 3, animationFrames: 9, seqCount: 18 });
+  assertEquals(planExport(1200, FRAME_BYTES, 4, 1), { k: 3, animationFrames: 2, seqCount: 8 });
+  assertEquals(planExport(1200, FRAME_BYTES, 2, 3), { k: 3, animationFrames: 9, seqCount: 18 });
 });
 
-test("the size estimate tracks the real file within 15%", async () => {
+Deno.test("the size estimate tracks the real file within 15%", async () => {
   // The forecast samples one real frame, so it must land near the actual file
   // for both formats and across scales — a codeword-entropy model shipped
   // first and measured ~2× short at scale 4, which this test now forbids.
@@ -131,7 +130,7 @@ test("the size estimate tracks the real file within 15%", async () => {
         cycles: 2,
         format,
       });
-      assert.ok(
+      assert(
         Math.abs(estimate - actual) / actual < 0.15,
         `${format} at scale ${scale}: estimated ${estimate}, actual ${actual}`,
       );
@@ -139,7 +138,7 @@ test("the size estimate tracks the real file within 15%", async () => {
   }
 });
 
-test("an exported APNG carries exactly the live pipeline's frames", async () => {
+Deno.test("an exported APNG carries exactly the live pipeline's frames", async () => {
   const payload = noise(1200, 42);
   const progress: [number, number][] = [];
   const result = await exportAnimation({
@@ -154,43 +153,43 @@ test("an exported APNG carries exactly the live pipeline's frames", async () => 
     sessionId: SESSION_ID,
     onProgress: (done, total) => progress.push([done, total]),
   });
-  assert.ok(result);
-  assert.equal(result.frameCount, 3);
-  assert.equal(result.mimeType, "image/png");
-  assert.equal(result.extension, "png");
-  assert.deepEqual(progress, [[1, 3], [2, 3], [3, 3]]);
+  assert(result);
+  assertStrictEquals(result.frameCount, 3);
+  assertStrictEquals(result.mimeType, "image/png");
+  assertStrictEquals(result.extension, "png");
+  assertEquals(progress, [[1, 3], [2, 3], [3, 3]]);
 
   const chunks = chunksOf(concatBytes(result.parts));
   const actl = chunks.find((c) => c.type === "acTL")!.data;
-  assert.equal(new DataView(actl.buffer, actl.byteOffset).getUint32(0), 3);
+  assertStrictEquals(new DataView(actl.buffer, actl.byteOffset).getUint32(0), 3);
   const streams = [
     chunks.find((c) => c.type === "IDAT")!.data,
     ...chunks.filter((c) => c.type === "fdAT").map((c) => c.data.subarray(4)),
   ];
   const expected = expectedScanlines(payload, 2, 3, 2);
-  assert.equal(streams.length, expected.length);
+  assertStrictEquals(streams.length, expected.length);
   for (const [i, stream] of streams.entries()) {
-    assert.deepEqual([...(await inflate(stream))], [...expected[i]!], `frame ${i}`);
+    assertEquals([...(await inflate(stream))], [...expected[i]!], `frame ${i}`);
   }
   // The IHDR dimensions match what the frames inflate to.
   const ihdr = chunks[0]!.data;
   const dv = new DataView(ihdr.buffer, ihdr.byteOffset);
-  assert.equal(dv.getUint32(0), result.width);
-  assert.equal(dv.getUint32(4), result.height);
+  assertStrictEquals(dv.getUint32(0), result.width);
+  assertStrictEquals(dv.getUint32(4), result.height);
 });
 
-test("the exported seq stream completes a fountain decode", () => {
+Deno.test("the exported seq stream completes a fountain decode", () => {
   const payload = noise(1200, 42);
   const blockLen = blockLength(FRAME_BYTES);
   const { seqCount, k } = planExport(payload.length, FRAME_BYTES, 2, 1);
   const encoder = new LTEncoder(payload, blockLen, SESSION_ID);
   const decoder = new LTDecoder(k, blockLen, SESSION_ID, payload.length);
   for (let seq = 0; seq < seqCount; seq++) decoder.addFrame(seq, encoder.encode(seq));
-  assert.ok(decoder.isComplete);
-  assert.deepEqual([...decoder.assemble()!], [...payload]);
+  assert(decoder.isComplete);
+  assertEquals([...decoder.assemble()!], [...payload]);
 });
 
-test("cancellation abandons the run and returns null", async () => {
+Deno.test("cancellation abandons the run and returns null", async () => {
   let frames = 0;
   const result = await exportAnimation({
     payload: noise(1200, 42),
@@ -205,11 +204,11 @@ test("cancellation abandons the run and returns null", async () => {
     onProgress: () => frames++,
     isCancelled: () => frames >= 2,
   });
-  assert.equal(result, null);
-  assert.equal(frames, 2);
+  assertStrictEquals(result, null);
+  assertStrictEquals(frames, 2);
 });
 
-test("a PNG-sequence ZIP: numbered frames plus the frame-rate note", async () => {
+Deno.test("a PNG-sequence ZIP: numbered frames plus the frame-rate note", async () => {
   const payload = noise(1200, 42);
   const result = await exportAnimation({
     payload,
@@ -223,13 +222,13 @@ test("a PNG-sequence ZIP: numbered frames plus the frame-rate note", async () =>
     sessionId: SESSION_ID,
     modified: new Date(2026, 0, 2, 3, 4, 6),
   });
-  assert.ok(result);
-  assert.equal(result.mimeType, "application/zip");
-  assert.equal(result.extension, "zip");
+  assert(result);
+  assertStrictEquals(result.mimeType, "application/zip");
+  assertStrictEquals(result.extension, "zip");
   const bytes = concatBytes(result.parts);
   const eocd = new DataView(bytes.buffer, bytes.byteLength - 22);
-  assert.equal(eocd.getUint32(0, true), 0x06054b50);
-  assert.equal(eocd.getUint16(8, true), result.frameCount + 1);
+  assertStrictEquals(eocd.getUint32(0, true), 0x06054b50);
+  assertStrictEquals(eocd.getUint16(8, true), result.frameCount + 1);
 
   // Walk the central directory for names, then check one entry's content.
   let at = eocd.getUint32(16, true);
@@ -247,34 +246,36 @@ test("a PNG-sequence ZIP: numbered frames plus the frame-rate note", async () =>
     });
     at += 46 + nameLength;
   }
-  assert.deepEqual(names, ["frame-0001.png", "frame-0002.png", "frame-0003.png", "frames-per-second.txt"]);
+  assertEquals(names, ["frame-0001.png", "frame-0002.png", "frame-0003.png", "frames-per-second.txt"]);
 
   const entryBytes = (name: string): Uint8Array => {
     const { offset, size, nameLength } = offsets.get(name)!;
     const start = offset + 30 + nameLength;
     return bytes.subarray(start, start + size);
   };
-  assert.equal(new TextDecoder().decode(entryBytes("frames-per-second.txt")), "10\n");
+  assertStrictEquals(new TextDecoder().decode(entryBytes("frames-per-second.txt")), "10\n");
   const frame = entryBytes("frame-0001.png");
   const idat = chunksOf(frame).find((c) => c.type === "IDAT")!.data;
-  assert.deepEqual([...(await inflate(idat))], [...expectedScanlines(payload, 2, 3, 1)[0]!]);
+  assertEquals([...(await inflate(idat))], [...expectedScanlines(payload, 2, 3, 1)[0]!]);
 });
 
-test("a PNG sequence past the ZIP entry ceiling is refused before rendering", async () => {
+Deno.test("a PNG sequence past the ZIP entry ceiling is refused before rendering", async () => {
   // k = 6554 → 5 cycles at grid 1 = 65540 frames, over the 65534 ceiling.
   const payload = new Uint8Array(6554 * blockLength(FRAME_BYTES));
-  await assert.rejects(
-    exportAnimation({
-      payload,
-      frameBytes: FRAME_BYTES,
-      ecc: ECC,
-      gridCodes: 1,
-      format: "zip",
-      fps: 10,
-      scale: 1,
-      cycles: 5,
-      sessionId: SESSION_ID,
-    }),
-    new RegExp(`at most ${ZIP_MAX_FRAMES} frames`),
+  const error = await assertRejects(
+    () =>
+      exportAnimation({
+        payload,
+        frameBytes: FRAME_BYTES,
+        ecc: ECC,
+        gridCodes: 1,
+        format: "zip",
+        fps: 10,
+        scale: 1,
+        cycles: 5,
+        sessionId: SESSION_ID,
+      }),
+    Error,
   );
+  assertMatch(error.message, new RegExp(`at most ${ZIP_MAX_FRAMES} frames`));
 });

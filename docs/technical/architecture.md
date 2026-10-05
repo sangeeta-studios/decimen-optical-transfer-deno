@@ -14,7 +14,7 @@ The send page carries two non-entry modules: `send/qr-frame.ts`, the one QR
 generation path (pinned mask, version locking) shared by the live stream and
 the exporter so the two cannot drift apart, and `send/export.ts`, the
 animation exporter — the stream rendered into a looping APNG or a
-PNG-sequence ZIP, DOM-free so the whole pipeline is Node-tested
+PNG-sequence ZIP, DOM-free so the whole pipeline is tested under Deno
 (`tests/animation-export.test.ts` pins its frames pixel-for-pixel to the
 rasterizer, and its size forecast samples a real frame rather than modeling
 one).
@@ -49,8 +49,9 @@ One file each, exact-match string surgery that **throws when it misses** — mar
 - `inline-codec-wasm.ts`, `use-inline-variants.ts` — inline the decoder wasm/worker for standalone.
 - `standalone-csp.ts`, `emit-as.ts` — standalone CSP and output naming.
 - `license-banner.ts` — prepends the version/license/source banner to every built artifact.
-- `diagnostics-endpoint.ts` — dev-only `/__diagnostics` collector behind `npm run diagnostics` (see [Diagnostics](diagnostics.md)).
-- `make-icons.ts` — regenerates `public/` icons from the logo (`npm run icons`, needs librsvg).
+- `basic-ssl.ts` — `@vitejs/plugin-basic-ssl` with its PEM split into certificate and key, which Deno's X509 parser needs for the https dev/preview server to start.
+- `diagnostics-endpoint.ts` — dev-only `/__diagnostics` collector behind `deno task diagnostics` (see [Diagnostics](diagnostics.md)).
+- `make-icons.ts` — regenerates `public/` icons from the logo (`deno task icons`, needs librsvg).
 - `benchmarks.ts` — promotes captured diagnostics runs to benchmark records and renders the README "Measured speed" section from `benchmarks/records.json` (see [Diagnostics](diagnostics.md)).
 
 ## Vendored decoder (`vendor/decimen-codec/`)
@@ -61,4 +62,4 @@ path, released separately as
 artifacts self-identify (banner + `version()`/`build()` exports); licensing
 in `NOTICE.md` alongside them.
 
-Typechecking: `tsconfig.json` covers the pages and `shared/`; `tsconfig.node.json` covers `build/` and `vite.config.ts` (both run in `npm run build`).
+Typechecking: `deno task check` runs two passes, mirroring the browser/build split — `check:app` covers the pages, `shared/`, and the tests (DOM types, no Node globals); `check:node` covers `build/` and `vite.config.ts` (Node types for Vite's plugin API). Both run in `deno task build`.

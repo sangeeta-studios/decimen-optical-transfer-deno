@@ -3,8 +3,8 @@
 // Once a native review lands, flip `reviewed: true` for zh-hans in
 // shared/i18n/registry.ts to remove the on-page unreviewed note.
 
-import type { Messages } from "../messages";
-import { localeByCode } from "../registry";
+import type { Messages } from "../messages.ts";
+import { localeByCode } from "../registry.ts";
 
 export const messages: Messages = {
   meta: localeByCode("zh-hans")!,
@@ -174,7 +174,7 @@ export const messages: Messages = {
     settingsApplied: "在摄像头启动时生效。",
     errSecureContext:
       "摄像头需要安全上下文——要在其他设备上使用摄像头，" +
-      "此页面必须通过 https 提供。`npm run dev` 已满足此要求。",
+      "此页面必须通过 https 提供。`deno task dev` 已满足此要求。",
     errPermissionDenied: "摄像头权限被拒绝——请先允许，然后再次点按“启动摄像头”。",
     errCameraGone: "该摄像头已不可用——请把摄像头设回“自动”，再点按“启动摄像头”。",
     errCamera: (message) => `摄像头：${message}`,

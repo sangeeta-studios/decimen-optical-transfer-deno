@@ -19,12 +19,12 @@
 // inlineDynamicImports, so THEY carry every catalog — which is exactly right
 // for a file that can't know its reader's language until it is opened.
 
-import { DEFAULT_LOCALE, LOCALES, matchLocale, localeByCode, type LocaleInfo } from "./registry";
-import type { Messages } from "./messages";
-import { OpticalError, errorText } from "../optical-error";
-import type { FrameVerdict } from "../protocol";
-import { MAX_FILE_LABEL } from "../protocol";
-import { MAX_SNIPPET_LABEL } from "../snippet";
+import { DEFAULT_LOCALE, LOCALES, matchLocale, localeByCode, type LocaleInfo } from "./registry.ts";
+import type { Messages } from "./messages.ts";
+import { OpticalError, errorText } from "../optical-error.ts";
+import type { FrameVerdict } from "../protocol.ts";
+import { MAX_FILE_LABEL } from "../protocol.ts";
+import { MAX_SNIPPET_LABEL } from "../snippet.ts";
 
 const LOCALE_KEY = "decimen:locale";
 const BANNER_DISMISSED_KEY = "decimen:locale-banner-dismissed";
@@ -33,8 +33,8 @@ const ISSUES_URL = "https://github.com/bashalarmistalt/decimen-optical-transfer/
 // Catalog loading lives in its own module because the standalone build swaps
 // it wholesale (loaders.ts → loaders.inline.ts, static imports) — see the
 // note in loaders.ts. Re-exported for tests/i18n.test.ts's parity check.
-export { loaders } from "./loaders";
-import { loaders } from "./loaders";
+export { loaders } from "./loaders.ts";
+import { loaders } from "./loaders.ts";
 
 /** The active catalog. Set once by initI18n(); every entry awaits that before
  *  wiring UI, so downstream modules can import { msg } and use it freely. */
@@ -118,7 +118,7 @@ function lookup(messages: Messages, path: string): string {
 /**
  * Swap every data-i18n-marked node under `root` to `messages`.
  *
- * The same contract the build plugin implements in node (build/i18n-pages.ts):
+ * The same contract the build plugin implements at build time (build/i18n-pages.ts):
  *   data-i18n="path"        textContent
  *   data-i18n-html="path"   innerHTML (values that carry inline markup)
  *   data-i18n-attr="attr:path;attr2:path2"   attribute values

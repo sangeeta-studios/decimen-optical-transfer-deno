@@ -87,7 +87,7 @@ body:
       options:
         - Hosted site
         - Standalone decimen-receiver.html
-        - Local dev server (npm run dev)
+        - Local dev server (deno task dev)
     validations:
       required: true
 

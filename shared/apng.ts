@@ -17,7 +17,7 @@ import {
   deflate,
   packBilevelScanlines,
   pngChunk,
-} from "./png";
+} from "./png.ts";
 
 export interface ApngSettings {
   /** Source raster dimensions (pre-scale), e.g. from rasterizeQrGrid. */

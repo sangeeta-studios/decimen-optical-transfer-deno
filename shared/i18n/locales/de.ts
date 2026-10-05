@@ -2,8 +2,8 @@
 // speaker. Once a native review lands, flip `reviewed: true` for "de" in
 // shared/i18n/registry.ts to remove the on-page unreviewed note.
 
-import type { Messages } from "../messages";
-import { localeByCode } from "../registry";
+import type { Messages } from "../messages.ts";
+import { localeByCode } from "../registry.ts";
 
 export const messages: Messages = {
   meta: localeByCode("de")!,
@@ -183,7 +183,7 @@ export const messages: Messages = {
     settingsApplied: "Wird beim Kamerastart übernommen.",
     errSecureContext:
       "Kamera braucht einen sicheren Kontext — diese Seite muss über https ausgeliefert " +
-      "werden, damit ein anderes Gerät die Kamera nutzen kann. `npm run dev` erfüllt das bereits.",
+      "werden, damit ein anderes Gerät die Kamera nutzen kann. `deno task dev` erfüllt das bereits.",
     errPermissionDenied:
       "Kamerazugriff verweigert — erlauben Sie ihn und tippen Sie erneut auf „Kamera starten“.",
     errCameraGone:

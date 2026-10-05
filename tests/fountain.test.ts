@@ -12,8 +12,7 @@
 // changed the wire format. That may be fine — but it is a breaking change and
 // needs a version bump on the frame header, not a re-recorded constant.
 
-import assert from "node:assert/strict";
-import test from "node:test";
+import { assert, assertEquals, assertNotEquals, assertStrictEquals } from "@std/assert";
 import {
   LTDecoder,
   LTEncoder,
@@ -27,7 +26,7 @@ import { fnv1a, splitmix32 } from "../shared/protocol.ts";
 
 // ---------------------------------------------------------------- dlog
 
-test("dlog is bit-exact against its recorded values", () => {
+Deno.test("dlog is bit-exact against its recorded values", () => {
   const golden: [number, number][] = [
     [1, 0],
     [1.5, 0.4054651081081644],
@@ -42,11 +41,11 @@ test("dlog is bit-exact against its recorded values", () => {
     [131070, 11.78348681061359],
   ];
   for (const [x, expected] of golden) {
-    assert.equal(dlog(x), expected, `dlog(${x}) drifted`);
+    assertStrictEquals(dlog(x), expected, `dlog(${x}) drifted`);
   }
 });
 
-test("dlog is bit-exact across every input the degree distribution can reach", () => {
+Deno.test("dlog is bit-exact across every input the degree distribution can reach", () => {
   // The eleven spot values above are readable but sparse: shortening dlog's
   // series from 21 terms to 19 changes only 0.2% of its outputs, which a
   // handful of samples will miss. solitonCdf() only ever calls dlog(k/DELTA)
@@ -57,10 +56,10 @@ test("dlog is bit-exact across every input the degree distribution can reach", (
   for (let k = 1; k <= 65535; k++) values[n++] = dlog(2 * k);
   for (let i = 64; i < 64 * 4096; i++) values[n++] = dlog(i / 64);
   const digest = fnv1a(new Uint8Array(values.buffer, 0, n * 8));
-  assert.equal(`0x${digest.toString(16).padStart(8, "0")}`, "0x27b0f3cc", "dlog changed");
+  assertStrictEquals(`0x${digest.toString(16).padStart(8, "0")}`, "0x27b0f3cc", "dlog changed");
 });
 
-test("dlog is accurate to within an ulp of Math.log but is NOT interchangeable with it", () => {
+Deno.test("dlog is accurate to within an ulp of Math.log but is NOT interchangeable with it", () => {
   // The whole reason dlog() exists: Math.log is implementation-approximated, so
   // V8 (a laptop sender) and JavaScriptCore (an iPhone receiver) may disagree
   // by an ulp. That is enough to move a CDF entry and flip a sampled degree.
@@ -77,25 +76,25 @@ test("dlog is accurate to within an ulp of Math.log but is NOT interchangeable w
       worstUlp = Math.max(worstUlp, Math.abs(ours - native) / (Math.abs(native) * Number.EPSILON));
     }
   }
-  assert.ok(worstUlp <= 2, `dlog drifted ${worstUlp.toFixed(2)} ulp from Math.log`);
-  assert.ok(differing > 0, "dlog now matches Math.log bit-for-bit — did it become Math.log?");
+  assert(worstUlp <= 2, `dlog drifted ${worstUlp.toFixed(2)} ulp from Math.log`);
+  assert(differing > 0, "dlog now matches Math.log bit-for-bit — did it become Math.log?");
 });
 
 // ------------------------------------------------------- degree sampling
 
-test("the soliton CDF is a well-formed distribution", () => {
+Deno.test("the soliton CDF is a well-formed distribution", () => {
   for (const k of [1, 2, 17, 179, 716, 22000]) {
     const cdf = solitonCdf(k);
-    assert.equal(cdf.length, k);
-    assert.equal(cdf[k - 1], 1, `k=${k} CDF must terminate at exactly 1`);
+    assertStrictEquals(cdf.length, k);
+    assertStrictEquals(cdf[k - 1], 1, `k=${k} CDF must terminate at exactly 1`);
     for (let i = 1; i < k; i++) {
-      assert.ok(cdf[i]! >= cdf[i - 1]!, `k=${k} CDF is not monotonic at ${i}`);
+      assert(cdf[i]! >= cdf[i - 1]!, `k=${k} CDF is not monotonic at ${i}`);
     }
-    assert.ok(cdf[0]! > 0, `k=${k} degree 1 must have non-zero mass or peeling never starts`);
+    assert(cdf[0]! > 0, `k=${k} degree 1 must have non-zero mass or peeling never starts`);
   }
 });
 
-test("the soliton CDF is bit-identical to its recorded fingerprint", () => {
+Deno.test("the soliton CDF is bit-identical to its recorded fingerprint", () => {
   // Sampling cannot guard this. A one-ulp shift in SOLITON_C, SOLITON_DELTA or
   // dlog() moves a CDF boundary by ~1e-16, so the odds of any finite number of
   // sampled degrees landing in the gap are nil — yet a sender and receiver that
@@ -117,7 +116,7 @@ test("the soliton CDF is bit-identical to its recorded fingerprint", () => {
   for (const [k, expected] of golden) {
     const cdf = solitonCdf(k);
     const digest = fnv1a(new Uint8Array(cdf.buffer, cdf.byteOffset, cdf.byteLength));
-    assert.equal(
+    assertStrictEquals(
       `0x${digest.toString(16).padStart(8, "0")}`,
       expected,
       `k=${k} degree distribution changed — senders and receivers will desync`,
@@ -125,7 +124,7 @@ test("the soliton CDF is bit-identical to its recorded fingerprint", () => {
   }
 });
 
-test("frameIndices matches its recorded subsets", () => {
+Deno.test("frameIndices matches its recorded subsets", () => {
   const golden: Record<number, number[][]> = {
     1: [[0], [0], [0], [0], [0]],
     2: [[1], [1], [1], [0], [1]],
@@ -138,7 +137,7 @@ test("frameIndices matches its recorded subsets", () => {
     const k = Number(rawK);
     const cdf = solitonCdf(k);
     seqs.forEach((seq, i) => {
-      assert.deepEqual(
+      assertEquals(
         frameIndices(k, cdf, 4242, seq),
         expected[i],
         `k=${k} seq=${seq} subset changed — this is a breaking wire-format change`,
@@ -147,27 +146,27 @@ test("frameIndices matches its recorded subsets", () => {
   }
 });
 
-test("frameIndices always yields distinct in-range blocks", () => {
+Deno.test("frameIndices always yields distinct in-range blocks", () => {
   for (const k of [1, 2, 17, 179, 4096]) {
     const cdf = solitonCdf(k);
     for (let seq = 0; seq < 3000; seq++) {
       const idx = frameIndices(k, cdf, 9, seq);
-      assert.ok(idx.length >= 1 && idx.length <= k, `k=${k} seq=${seq} degree ${idx.length}`);
-      assert.equal(new Set(idx).size, idx.length, `k=${k} seq=${seq} repeated a block index`);
+      assert(idx.length >= 1 && idx.length <= k, `k=${k} seq=${seq} degree ${idx.length}`);
+      assertStrictEquals(new Set(idx).size, idx.length, `k=${k} seq=${seq} repeated a block index`);
       for (const b of idx) {
-        assert.ok(Number.isInteger(b) && b >= 0 && b < k, `k=${k} seq=${seq} index ${b}`);
+        assert(Number.isInteger(b) && b >= 0 && b < k, `k=${k} seq=${seq} index ${b}`);
       }
     }
   }
 });
 
-test("the same seq on a different session picks a different subset", () => {
+Deno.test("the same seq on a different session picks a different subset", () => {
   // frameSeed() mixes both, so restarting the sender genuinely reshuffles the
   // stream rather than replaying the previous session's frames.
   const cdf = solitonCdf(179);
   const a = frameIndices(179, cdf, 1, 0);
   const b = frameIndices(179, cdf, 2, 0);
-  assert.notDeepEqual(a, b);
+  assertNotEquals(a, b);
 });
 
 // --------------------------------------------------- full encoder stream
@@ -179,7 +178,7 @@ function testPayload(byteLength: number): Uint8Array {
   return payload;
 }
 
-test("the encoded stream is byte-identical to its recorded fingerprint", () => {
+Deno.test("the encoded stream is byte-identical to its recorded fingerprint", () => {
   // The end-to-end pin: covers dlog, solitonCdf, frameSeed, splitmix32,
   // frameIndices, the block padding and the XOR order in one hash.
   // Re-recorded for wire format v2 (systematic carousel, header magic 0x0D).
@@ -196,17 +195,17 @@ test("the encoded stream is byte-identical to its recorded fingerprint", () => {
     const stream = new Uint8Array(64 * blockLen);
     for (let seq = 0; seq < 64; seq++) stream.set(encoder.encode(seq), seq * blockLen);
     const actual = `k=${encoder.k} fnv=0x${fnv1a(stream).toString(16).padStart(8, "0")}`;
-    assert.equal(actual, expected, `stream for k=${k}/${blockLen}/${sessionId} changed`);
+    assertStrictEquals(actual, expected, `stream for k=${k}/${blockLen}/${sessionId} changed`);
   }
 });
 
-test("every frame is exactly blockLen bytes", () => {
+Deno.test("every frame is exactly blockLen bytes", () => {
   // The sender pins the QR version off the first frame, so a short tail frame
   // would silently produce an undecodable code for the rest of the transfer.
   const blockLen = 1445;
   const encoder = new LTEncoder(testPayload(blockLen * 5 + 1), blockLen, 3);
-  assert.equal(encoder.k, 6);
-  for (let seq = 0; seq < 200; seq++) assert.equal(encoder.encode(seq).length, blockLen);
+  assertStrictEquals(encoder.k, 6);
+  for (let seq = 0; seq < 200; seq++) assertStrictEquals(encoder.encode(seq).length, blockLen);
 });
 
 // ------------------------------------------------------------ round trip
@@ -239,7 +238,7 @@ function roundTrip(byteLength: number, blockLen: number, sessionId: number, drop
   };
 }
 
-test("a re-swept block the receiver already solved counts as redundant, not progress", () => {
+Deno.test("a re-swept block the receiver already solved counts as redundant, not progress", () => {
   // The progress bar runs on framesNew − framesRedundant: on a lossy stream
   // the carousel re-sweeps solved blocks under fresh seqs, and counting those
   // as progress showed 96% with half the blocks outstanding.
@@ -249,24 +248,24 @@ test("a re-swept block the receiver already solved counts as redundant, not prog
   const decoder = new LTDecoder(encoder.k, blockLen, 77, payload.length);
 
   decoder.addFrame(0, encoder.encode(0));
-  assert.equal(decoder.solvedCount, 1);
-  assert.equal(decoder.framesRedundant, 0);
+  assertStrictEquals(decoder.solvedCount, 1);
+  assertStrictEquals(decoder.framesRedundant, 0);
 
   // Same block, next cycle: a NEW seq carrying nothing the receiver lacks.
   const nextCycle = cycleLength(encoder.k);
   decoder.addFrame(nextCycle, encoder.encode(nextCycle));
-  assert.equal(decoder.framesNew, 2, "a fresh seq is still a new frame");
-  assert.equal(decoder.framesDup, 0);
-  assert.equal(decoder.framesRedundant, 1);
-  assert.equal(decoder.solvedCount, 1);
+  assertStrictEquals(decoder.framesNew, 2, "a fresh seq is still a new frame");
+  assertStrictEquals(decoder.framesDup, 0);
+  assertStrictEquals(decoder.framesRedundant, 1);
+  assertStrictEquals(decoder.solvedCount, 1);
 
   // An unsolved block's sweep frame is information, never redundant.
   decoder.addFrame(1, encoder.encode(1));
-  assert.equal(decoder.framesRedundant, 1);
-  assert.equal(decoder.solvedCount, 2);
+  assertStrictEquals(decoder.framesRedundant, 1);
+  assertStrictEquals(decoder.solvedCount, 2);
 });
 
-test("a payload survives the fountain exactly", () => {
+Deno.test("a payload survives the fountain exactly", () => {
   for (const [byteLength, blockLen] of [
     [7, 2933],
     [2933, 2933],
@@ -275,52 +274,52 @@ test("a payload survives the fountain exactly", () => {
     [2 * 1024 * 1024, 2933],
   ] as const) {
     const { recovered } = roundTrip(byteLength, blockLen, 11);
-    assert.ok(recovered, `${byteLength}B did not complete`);
-    assert.deepEqual(recovered, testPayload(byteLength));
+    assert(recovered, `${byteLength}B did not complete`);
+    assertEquals(recovered, testPayload(byteLength));
   }
 });
 
-test("dropping 30% of frames costs time, never correctness", () => {
+Deno.test("dropping 30% of frames costs time, never correctness", () => {
   const { recovered, overhead, wallClock } = roundTrip(512 * 1024, 2933, 23, 0.3);
-  assert.ok(recovered);
-  assert.deepEqual(recovered, testPayload(512 * 1024));
+  assert(recovered);
+  assertEquals(recovered, testPayload(512 * 1024));
   // Carousel bounds, measured at k=179 over 20 trials (worst wall clock 2.11
   // seqs per block at 30% drop) with margin. Unlike v1, framesNew can include
   // re-swept blocks the receiver already solved, so it is bounded looser.
-  assert.ok(wallClock < 2.8, `wall clock ${wallClock.toFixed(2)} seqs/block is too high`);
-  assert.ok(overhead < 1.8, `unique-frame overhead ${overhead.toFixed(2)} is too high`);
+  assert(wallClock < 2.8, `wall clock ${wallClock.toFixed(2)} seqs/block is too high`);
+  assert(overhead < 1.8, `unique-frame overhead ${overhead.toFixed(2)} is too high`);
 });
 
-test("a receiver that catches one clean sweep pays zero fountain overhead", () => {
+Deno.test("a receiver that catches one clean sweep pays zero fountain overhead", () => {
   const byteLength = 200_000;
   const blockLen = 1445;
   const payload = testPayload(byteLength);
   const encoder = new LTEncoder(payload, blockLen, 55);
   const decoder = new LTDecoder(encoder.k, blockLen, 55, byteLength);
   for (let seq = 0; seq < encoder.k; seq++) decoder.addFrame(seq, encoder.encode(seq));
-  assert.ok(decoder.isComplete, "one full sweep must complete the transfer");
-  assert.equal(decoder.framesNew, encoder.k);
-  assert.deepEqual(decoder.assemble(), payload);
+  assert(decoder.isComplete, "one full sweep must complete the transfer");
+  assertStrictEquals(decoder.framesNew, encoder.k);
+  assertEquals(decoder.assemble(), payload);
 });
 
-test("the carousel composition is systematic in the sweep, mid-degree after", () => {
+Deno.test("the carousel composition is systematic in the sweep, mid-degree after", () => {
   for (const k of [1, 17, 179, 4096]) {
-    assert.equal(cycleLength(k), 2 * k);
+    assertStrictEquals(cycleLength(k), 2 * k);
     for (const pos of new Set([0, k >> 1, k - 1])) {
-      assert.deepEqual(frameComposition(k, 9, pos), [pos], `k=${k} sweep pos=${pos}`);
+      assertEquals(frameComposition(k, 9, pos), [pos], `k=${k} sweep pos=${pos}`);
       // The sweep restarts every cycle, at any cycle number.
-      assert.deepEqual(frameComposition(k, 9, pos + 6 * cycleLength(k)), [pos]);
+      assertEquals(frameComposition(k, 9, pos + 6 * cycleLength(k)), [pos]);
     }
     for (const seq of [k, k + 1, 2 * k - 1]) {
       const idx = frameComposition(k, 9, seq);
-      assert.ok(idx.length >= Math.min(k, 4) && idx.length <= Math.min(k, 24), `k=${k} seq=${seq} degree ${idx.length}`);
-      assert.equal(new Set(idx).size, idx.length);
-      for (const b of idx) assert.ok(Number.isInteger(b) && b >= 0 && b < k);
+      assert(idx.length >= Math.min(k, 4) && idx.length <= Math.min(k, 24), `k=${k} seq=${seq} degree ${idx.length}`);
+      assertStrictEquals(new Set(idx).size, idx.length);
+      for (const b of idx) assert(Number.isInteger(b) && b >= 0 && b < k);
     }
   }
 });
 
-test("a receiver joining mid-cycle completes without a handshake", () => {
+Deno.test("a receiver joining mid-cycle completes without a handshake", () => {
   // The sender has been looping for a while; the receiver starts cold at an
   // arbitrary seq. Measured worst over 20 trials: 1.34 seqs per block.
   const byteLength = 512 * 1024;
@@ -334,13 +333,13 @@ test("a receiver joining mid-cycle completes without a handshake", () => {
     decoder.addFrame(seq, encoder.encode(seq));
     seq++;
   }
-  assert.ok(decoder.isComplete);
-  assert.deepEqual(decoder.assemble(), payload);
+  assert(decoder.isComplete);
+  assertEquals(decoder.assemble(), payload);
   const wallClock = (seq - start) / encoder.k;
-  assert.ok(wallClock < 1.7, `mid-join took ${wallClock.toFixed(2)} seqs/block`);
+  assert(wallClock < 1.7, `mid-join took ${wallClock.toFixed(2)} seqs/block`);
 });
 
-test("frames decode in any order", () => {
+Deno.test("frames decode in any order", () => {
   const byteLength = 200_000;
   const blockLen = 1445;
   const payload = testPayload(byteLength);
@@ -363,11 +362,11 @@ test("frames decode in any order", () => {
     decoder.addFrame(seq, block);
     if (decoder.isComplete) break;
   }
-  assert.ok(decoder.isComplete);
-  assert.deepEqual(decoder.assemble(), payload);
+  assert(decoder.isComplete);
+  assertEquals(decoder.assemble(), payload);
 });
 
-test("repeated frames are counted but never corrupt the decode", () => {
+Deno.test("repeated frames are counted but never corrupt the decode", () => {
   const byteLength = 60_000;
   const blockLen = 1445;
   const payload = testPayload(byteLength);
@@ -381,24 +380,24 @@ test("repeated frames are counted but never corrupt the decode", () => {
     decoder.addFrame(seq, block); // the camera re-reads the same on-screen frame
     seq++;
   }
-  assert.ok(decoder.framesDup >= decoder.framesNew - 1);
-  assert.deepEqual(decoder.assemble(), payload);
+  assert(decoder.framesDup >= decoder.framesNew - 1);
+  assertEquals(decoder.assemble(), payload);
 });
 
-test("a single-block payload completes on its first frame", () => {
+Deno.test("a single-block payload completes on its first frame", () => {
   const payload = testPayload(900);
   const encoder = new LTEncoder(payload, 2933, 5);
-  assert.equal(encoder.k, 1);
+  assertStrictEquals(encoder.k, 1);
   const decoder = new LTDecoder(1, 2933, 5, 900);
   decoder.addFrame(0, encoder.encode(0));
-  assert.ok(decoder.isComplete);
-  assert.deepEqual(decoder.assemble(), payload);
+  assert(decoder.isComplete);
+  assertEquals(decoder.assemble(), payload);
 });
 
-test("an incomplete decoder assembles nothing", () => {
+Deno.test("an incomplete decoder assembles nothing", () => {
   const encoder = new LTEncoder(testPayload(50_000), 1445, 13);
   const decoder = new LTDecoder(encoder.k, 1445, 13, 50_000);
   decoder.addFrame(0, encoder.encode(0));
-  assert.equal(decoder.isComplete, false);
-  assert.equal(decoder.assemble(), null);
+  assertStrictEquals(decoder.isComplete, false);
+  assertStrictEquals(decoder.assemble(), null);
 });

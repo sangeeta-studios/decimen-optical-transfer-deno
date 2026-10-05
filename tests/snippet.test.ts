@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { assert, assertMatch, assertRejects, assertStrictEquals, assertThrows } from "@std/assert";
 import {
   MAX_SNIPPET_BYTES,
   MAX_SNIPPET_LABEL,
@@ -9,47 +8,47 @@ import {
 } from "../shared/snippet.ts";
 import { unpackFile, verifyFile } from "../shared/protocol.ts";
 
-test("a text snippet survives the optical container", async () => {
+Deno.test("a text snippet survives the optical container", async () => {
   const text = "ssh-ed25519 AAAAC3Nz… evan@laptop\nand a second line.";
   const packed = await packSnippet(text);
   const file = await unpackFile(packed.container);
 
-  assert.ok(await verifyFile(file));
-  assert.ok(isSnippet(file));
-  assert.equal(snippetText(file), text);
+  assert(await verifyFile(file));
+  assert(isSnippet(file));
+  assertStrictEquals(snippetText(file), text);
 });
 
-test("the receiver tells a snippet apart from an ordinary file", async () => {
+Deno.test("the receiver tells a snippet apart from an ordinary file", async () => {
   const { packFile } = await import("../shared/protocol.ts");
   const file = await unpackFile(
     (await packFile("notes.txt", "text/plain", new TextEncoder().encode("hello"))).container,
   );
 
-  assert.equal(isSnippet(file), false);
-  assert.throws(() => snippetText(file), /not a text snippet/);
+  assertStrictEquals(isSnippet(file), false);
+  assertMatch(assertThrows(() => snippetText(file), Error).message, /not a text snippet/);
 });
 
-test("empty snippets are rejected", async () => {
-  await assert.rejects(() => packSnippet("  \n\t "), /Paste or type some text/);
+Deno.test("empty snippets are rejected", async () => {
+  assertMatch((await assertRejects(() => packSnippet("  \n\t "), Error)).message, /Paste or type some text/);
 });
 
-test("snippets are capped, and the cap is measured in UTF-8 bytes", async () => {
-  await assert.rejects(
-    () => packSnippet("x".repeat(MAX_SNIPPET_BYTES + 1)),
-    new RegExp(`limited to ${MAX_SNIPPET_LABEL}`),
-  );
+Deno.test("snippets are capped, and the cap is measured in UTF-8 bytes", async () => {
+  const overCap = new RegExp(`limited to ${MAX_SNIPPET_LABEL}`);
+  const ascii = await assertRejects(() => packSnippet("x".repeat(MAX_SNIPPET_BYTES + 1)), Error);
+  assertMatch(ascii.message, overCap);
 
   // "あ" is one UTF-16 unit but three UTF-8 bytes, so a string well under the
   // cap by .length is still over it on the wire.
-  await assert.rejects(
+  const wide = await assertRejects(
     () => packSnippet("あ".repeat(Math.ceil(MAX_SNIPPET_BYTES / 3) + 1)),
-    new RegExp(`limited to ${MAX_SNIPPET_LABEL}`),
+    Error,
   );
+  assertMatch(wide.message, overCap);
 });
 
-test("long snippets compress before they are transmitted", async () => {
+Deno.test("long snippets compress before they are transmitted", async () => {
   const packed = await packSnippet("the same sentence over and over. ".repeat(2000));
 
-  assert.equal(packed.compression, "gzip");
-  assert.ok(packed.transmittedSize < packed.originalSize);
+  assertStrictEquals(packed.compression, "gzip");
+  assert(packed.transmittedSize < packed.originalSize);
 });

@@ -11,11 +11,11 @@
 //   getCapabilities; iOS Safari exposes none of them. shared/platform.ts owns
 //   the probing, so everything here is capability-gated rather than UA-gated.
 
-import { LTDecoder } from "../shared/fountain";
+import { LTDecoder } from "../shared/fountain.ts";
 import {
   estimateTransferProgress,
   expectedFountainOverhead,
-} from "../shared/progress";
+} from "../shared/progress.ts";
 import {
   fmtInt,
   fmtNumber,
@@ -24,17 +24,17 @@ import {
   localizeError,
   msg,
   verdictMessage,
-} from "../shared/i18n";
-import { OpticalError } from "../shared/optical-error";
-import { createDecodeWorker } from "./worker-factory";
-import { NoSignalHintTimer } from "../shared/no-signal";
+} from "../shared/i18n/index.ts";
+import { OpticalError } from "../shared/optical-error.ts";
+import { createDecodeWorker } from "./worker-factory.ts";
+import { NoSignalHintTimer } from "../shared/no-signal.ts";
 import {
   DecodeWorkerPool,
   type SymbolBox,
   type SymbolInfo,
   type SymbolQuad,
-} from "../shared/worker-pool";
-import { isSnippet, snippetText } from "../shared/snippet";
+} from "../shared/worker-pool.ts";
+import { isSnippet, snippetText } from "../shared/snippet.ts";
 import {
   classifyFrame,
   fnv1a,
@@ -43,13 +43,13 @@ import {
   unpackFile,
   verifyFile,
   type OpticalFile,
-} from "../shared/protocol";
-import { NO_SIGNAL_HINT_FRAME_BYTES, NO_SIGNAL_HINT_TX_FPS } from "../shared/send-settings";
-import { statusLine } from "../shared/status-line";
-import { requestScreenWakeLock } from "../shared/wake-lock";
-import { applyAdvancedConstraint, probeCameraCapabilities } from "../shared/platform";
-import { closeOnBackdropClick } from "../shared/dialog";
-import { supportLink } from "./support";
+} from "../shared/protocol.ts";
+import { NO_SIGNAL_HINT_FRAME_BYTES, NO_SIGNAL_HINT_TX_FPS } from "../shared/send-settings.ts";
+import { statusLine } from "../shared/status-line.ts";
+import { requestScreenWakeLock } from "../shared/wake-lock.ts";
+import { applyAdvancedConstraint, probeCameraCapabilities } from "../shared/platform.ts";
+import { closeOnBackdropClick } from "../shared/dialog.ts";
+import { supportLink } from "./support.ts";
 
 await initI18n();
 
@@ -146,7 +146,7 @@ const pool = new DecodeWorkerPool(
 const captureTimes: number[] = [];
 const decodeTimes: number[] = [];
 
-// Run-level totals for the diagnostics report (npm run diagnostics). The
+// Run-level totals for the diagnostics report (deno task diagnostics). The
 // captureTimes/decodeTimes windows above are pruned for the live fps metrics
 // and cannot answer "how much, in total, did this run do".
 let totalCaptures = 0;
@@ -1000,7 +1000,7 @@ function goodputKbs(elapsed: number): number {
 async function finish(container: Uint8Array, hashOk: boolean, seconds: number) {
   done = true;
   captureGen++;
-  // npm run diagnostics: one JSON report per completed run, POSTed to the dev
+  // deno task diagnostics: one JSON report per completed run, POSTed to the dev
   // server so it lands in the terminal (build/diagnostics-endpoint.ts). Sent
   // before teardown, while the camera settings and pool size are still real.
   // The DEV guard is load-bearing: import.meta.env.DEV is statically false in

@@ -1,5 +1,5 @@
 import type { Plugin } from "vite";
-import { resolve } from "node:path";
+import { resolve } from "@std/path";
 
 /**
  * Standalone builds need the worker and the wasm embedded rather than fetched.
@@ -12,12 +12,12 @@ import { resolve } from "node:path";
  */
 export function useInlineVariants(rootDir: string): Plugin {
   const swaps = new Map([
-    ["./worker-factory", "receive/worker-factory.inline.ts"],
-    ["./wasm-url", "receive/wasm-url.inline.ts"],
-    ["./support", "receive/support.inline.ts"],
+    ["./worker-factory.ts", "receive/worker-factory.inline.ts"],
+    ["./wasm-url.ts", "receive/wasm-url.inline.ts"],
+    ["./support.ts", "receive/support.inline.ts"],
     // A single file speaks every language; the dynamic per-locale imports
     // would also land after the entry's top-level await once inlined (TDZ).
-    ["./loaders", "shared/i18n/loaders.inline.ts"],
+    ["./loaders.ts", "shared/i18n/loaders.inline.ts"],
   ]);
   return {
     name: "use-inline-variants",

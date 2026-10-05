@@ -1,6 +1,6 @@
 // Regenerates the PWA icon set in public/ from public/decimen_logo.svg:
 //
-//   npm run icons        (needs rsvg-convert on PATH — librsvg)
+//   deno task icons      (needs rsvg-convert on PATH — librsvg)
 //
 // Three variants come out of the one logo:
 //  - icon-192 / icon-512: the logo tile as-is (rounded corners, purpose "any")
@@ -16,14 +16,10 @@
 // build plugins, so a reshaped logo breaks this script rather than shipping a
 // half-transformed icon.
 
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fromFileUrl, join } from "@std/path";
 
-const publicDir = fileURLToPath(new URL("../public", import.meta.url));
-const logo = readFileSync(join(publicDir, "decimen_logo.svg"), "utf8");
+const publicDir = fromFileUrl(new URL("../public", import.meta.url));
+const logo = Deno.readTextFileSync(join(publicDir, "decimen_logo.svg"));
 const cleaned = logo.replace(/<!--[\s\S]*?-->/g, "");
 
 const ROUNDED_RECT = '<rect width="640" height="640" rx="112" fill="#070a11"/>';
@@ -44,18 +40,25 @@ function squareVariant(markScale: number): string {
     .replace("</svg>", "</g></svg>");
 }
 
+/** Run rsvg-convert, throwing on a non-zero exit. Throws NotFound when the
+ *  binary is missing. */
+function rsvgConvert(args: string[], stderr: "inherit" | "null" = "inherit") {
+  const { success, code } = new Deno.Command("rsvg-convert", { args, stdout: "null", stderr }).outputSync();
+  if (!success) throw new Error(`rsvg-convert ${args.join(" ")} exited with ${code}`);
+}
+
 try {
-  execFileSync("rsvg-convert", ["--version"], { stdio: "ignore" });
+  rsvgConvert(["--version"], "null");
 } catch {
   throw new Error("rsvg-convert not found — install librsvg");
 }
 
-const work = mkdtempSync(join(tmpdir(), "decimen-icons-"));
+const work = Deno.makeTempDirSync({ prefix: "decimen-icons-" });
 
 function render(svg: string, size: number, out: string) {
   const src = join(work, `${out}.svg`);
-  writeFileSync(src, svg);
-  execFileSync("rsvg-convert", ["-w", String(size), "-h", String(size), src, "-o", join(publicDir, out)]);
+  Deno.writeTextFileSync(src, svg);
+  rsvgConvert(["-w", String(size), "-h", String(size), src, "-o", join(publicDir, out)]);
   console.log(`public/${out} ${size}×${size}`);
 }
 
@@ -65,5 +68,5 @@ try {
   render(squareVariant(0.62), 512, "icon-maskable-512.png");
   render(squareVariant(0.82), 180, "apple-touch-icon.png");
 } finally {
-  rmSync(work, { recursive: true, force: true });
+  Deno.removeSync(work, { recursive: true });
 }

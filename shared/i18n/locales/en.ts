@@ -5,9 +5,9 @@
 // value drift apart, the build fails and names the key. Edit copy in both
 // places — the HTML stays readable, the catalog stays authoritative.
 
-import type { Messages } from "../messages";
-import { localeByCode } from "../registry";
-import { ENGLISH_ERRORS } from "../../optical-error";
+import type { Messages } from "../messages.ts";
+import { localeByCode } from "../registry.ts";
+import { ENGLISH_ERRORS } from "../../optical-error.ts";
 
 export const messages: Messages = {
   meta: localeByCode("en")!,
@@ -180,7 +180,7 @@ export const messages: Messages = {
     settingsApplied: "Applied when the camera starts.",
     errSecureContext:
       "camera needs a secure context — this page must be served over https to " +
-      "use the camera from another device. `npm run dev` already is.",
+      "use the camera from another device. `deno task dev` already is.",
     errPermissionDenied: "camera permission denied — allow it, then tap Start camera again.",
     errCameraGone:
       "that camera is no longer available — set camera back to auto and tap Start camera.",

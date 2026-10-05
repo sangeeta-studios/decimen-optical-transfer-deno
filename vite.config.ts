@@ -1,34 +1,32 @@
 import { defineConfig } from "vite";
-import basicSsl from "@vitejs/plugin-basic-ssl";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { VitePWA } from "vite-plugin-pwa";
-import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { MAX_FILE_LABEL } from "./shared/protocol";
-import { MAX_SNIPPET_LABEL } from "./shared/snippet";
+import { resolve } from "@std/path";
+import { MAX_FILE_LABEL } from "./shared/protocol.ts";
+import { MAX_SNIPPET_LABEL } from "./shared/snippet.ts";
 import {
   DEFAULT_FRAME_BYTES,
   DEFAULT_TX_FPS,
   FRAME_BYTES_OPTIONS,
   TX_FPS_OPTIONS,
-} from "./shared/send-settings";
-import { htmlTokens } from "./build/html-tokens";
-import { inlineCodecWasm } from "./build/inline-codec-wasm";
-import { useInlineVariants } from "./build/use-inline-variants";
-import { rewriteStandaloneLinks } from "./build/rewrite-standalone-links";
-import { standaloneCsp } from "./build/standalone-csp";
-import { emitAs } from "./build/emit-as";
-import { rootPwaHead } from "./build/root-pwa-head";
-import { licenseBanner } from "./build/license-banner";
-import { diagnosticsEndpoint } from "./build/diagnostics-endpoint";
-import { i18nPages } from "./build/i18n-pages";
+} from "./shared/send-settings.ts";
+import { htmlTokens } from "./build/html-tokens.ts";
+import { inlineCodecWasm } from "./build/inline-codec-wasm.ts";
+import { useInlineVariants } from "./build/use-inline-variants.ts";
+import { rewriteStandaloneLinks } from "./build/rewrite-standalone-links.ts";
+import { standaloneCsp } from "./build/standalone-csp.ts";
+import { emitAs } from "./build/emit-as.ts";
+import { rootPwaHead } from "./build/root-pwa-head.ts";
+import { licenseBanner } from "./build/license-banner.ts";
+import { diagnosticsEndpoint } from "./build/diagnostics-endpoint.ts";
+import { basicSslSplit } from "./build/basic-ssl.ts";
+import { i18nPages } from "./build/i18n-pages.ts";
 
 // Where the site is published, used only to make the social-card URLs absolute
 // — scrapers are inconsistent about resolving relative ones. Override with
 // VITE_SITE_URL when deploying somewhere else; nothing else depends on it, and
 // the build still works under any subpath.
-const SITE_URL = process.env.VITE_SITE_URL ?? "https://decimen.app/";
+const SITE_URL = Deno.env.get("VITE_SITE_URL") ?? "https://decimen.app/";
 
 // HTTPS always: the receiver needs getUserMedia, and on insecure origins
 // that API does not exist at all — a phone reaching this server over the LAN
@@ -44,7 +42,9 @@ const SITE_URL = process.env.VITE_SITE_URL ?? "https://decimen.app/";
 //
 // The plugins live in build/, one file each.
 
-const pkg = JSON.parse(readFileSync(resolve(__dirname, "package.json"), "utf8")) as {
+const ROOT = import.meta.dirname!;
+
+const pkg = JSON.parse(Deno.readTextFileSync(resolve(ROOT, "deno.json"))) as {
   version: string;
 };
 
@@ -76,11 +76,14 @@ const MANIFEST_BASE = {
  * (a source tarball still has to build).
  */
 function buildId(): string {
-  const git = (cmd: string) =>
-    execSync(cmd, { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  const git = (...args: string[]) => {
+    const out = new Deno.Command("git", { args, stdin: "null", stderr: "null" }).outputSync();
+    if (!out.success) throw new Error(`git ${args[0]} failed`);
+    return new TextDecoder().decode(out.stdout).trim();
+  };
   try {
-    const hash = git("git rev-parse --short HEAD");
-    return git("git status --porcelain").length > 0 ? `${hash}-dirty` : hash;
+    const hash = git("rev-parse", "--short", "HEAD");
+    return git("status", "--porcelain").length > 0 ? `${hash}-dirty` : hash;
   } catch {
     return "unknown";
   }
@@ -95,7 +98,7 @@ const selectOptions = (values: readonly number[], selected: number) =>
 // The og-description speed claim reads the benchmark records at build time,
 // so the social-card text can never lag the published table.
 const topSustained = (
-  JSON.parse(readFileSync(resolve(__dirname, "benchmarks/records.json"), "utf8")) as {
+  JSON.parse(Deno.readTextFileSync(resolve(ROOT, "benchmarks/records.json"))) as {
     sustained: { sustainedKBs: number } | null;
   }
 ).sustained;
@@ -113,6 +116,11 @@ const TOKENS = {
   BUILD_ID: buildId(),
 };
 
+// Native class fields, as the ES2022 target always gave us. Vite's esbuild
+// derives this from a tsconfig.json target, and Deno has no tsconfig.json, so
+// without it class fields silently compile to constructor assignments.
+const ESBUILD = { tsconfigRaw: { compilerOptions: { useDefineForClassFields: true } } };
+
 export default defineConfig(({ mode }) => {
   const standalone = mode === "standalone-send" || mode === "standalone-receive";
   const page = mode === "standalone-send" ? "send" : "receive";
@@ -121,12 +129,13 @@ export default defineConfig(({ mode }) => {
   if (standalone) {
     return {
       base: "./",
+      esbuild: ESBUILD,
       // The bundled demo PNGs are fetched by relative URL, which a single file
       // has no way to satisfy — copying them here would just litter the output.
       publicDir: false,
       plugins: [
         htmlTokens(TOKENS),
-        useInlineVariants(__dirname),
+        useInlineVariants(ROOT),
         inlineCodecWasm(),
         rewriteStandaloneLinks(page),
         standaloneCsp(page),
@@ -136,7 +145,7 @@ export default defineConfig(({ mode }) => {
       ],
       // Workers are bundled in their own Rollup pass and do not inherit the
       // plugin list, so both plugins have to be registered again here.
-      worker: { format: "iife", plugins: () => [useInlineVariants(__dirname), inlineCodecWasm()] },
+      worker: { format: "iife", plugins: () => [useInlineVariants(ROOT), inlineCodecWasm()] },
       build: {
         // ES2022 for top-level await: the entries await initI18n() before
         // touching the DOM. Chrome 89 / Firefox 89 / Safari 15 — anything
@@ -145,16 +154,17 @@ export default defineConfig(({ mode }) => {
         outDir,
         emptyOutDir: false,
         assetsInlineLimit: Number.MAX_SAFE_INTEGER,
-        rollupOptions: { input: resolve(__dirname, `${page}/index.html`) },
+        rollupOptions: { input: resolve(ROOT, `${page}/index.html`) },
       },
     };
   }
 
   return {
     base: "./",
+    esbuild: ESBUILD,
     plugins: [
       htmlTokens(TOKENS),
-      basicSsl(),
+      basicSslSplit(),
       VitePWA({
         registerType: "autoUpdate",
         // We inject our own registration — see rootPwaHead().
@@ -211,14 +221,14 @@ export default defineConfig(({ mode }) => {
       target: "es2022",
       rollupOptions: {
         input: {
-          index: resolve(__dirname, "index.html"),
-          send: resolve(__dirname, "send/index.html"),
-          receive: resolve(__dirname, "receive/index.html"),
+          index: resolve(ROOT, "index.html"),
+          send: resolve(ROOT, "send/index.html"),
+          receive: resolve(ROOT, "receive/index.html"),
         },
       },
     },
     // host: true on both so a phone on the LAN can reach either the dev server
-    // or the built bundle that `npm run serve` previews.
+    // or the built bundle that `deno task serve` previews.
     server: { host: true },
     preview: { host: true },
   };

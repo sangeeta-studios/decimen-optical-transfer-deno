@@ -1,6 +1,5 @@
 import type { Plugin } from "vite";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { encodeBase64 } from "@std/encoding/base64";
 
 /**
  * `?inline` does not work on .wasm — Vite claims the extension for its own wasm
@@ -15,10 +14,8 @@ export function inlineCodecWasm(): Plugin {
     resolveId: (source) => (source === id ? resolved : null),
     load(source) {
       if (source !== resolved) return null;
-      const wasm = readFileSync(
-        fileURLToPath(new URL("../vendor/decimen-codec/decimen_codec.wasm", import.meta.url)),
-      );
-      return `export default "data:application/wasm;base64,${wasm.toString("base64")}"`;
+      const wasm = Deno.readFileSync(new URL("../vendor/decimen-codec/decimen_codec.wasm", import.meta.url));
+      return `export default "data:application/wasm;base64,${encodeBase64(wasm)}"`;
     },
   };
 }

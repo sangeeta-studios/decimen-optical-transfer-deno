@@ -9,7 +9,7 @@
 // exporter checks the entry count before it starts rendering (ZIP_MAX_FRAMES
 // in send/export.ts), so a user hits a named message, not this throw.
 
-import { crc32 } from "./png";
+import { crc32 } from "./png.ts";
 
 export interface ZipEntry {
   name: string;

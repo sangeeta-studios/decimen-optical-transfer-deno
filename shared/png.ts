@@ -5,7 +5,7 @@
 // That is exactly what a rasterized QR frame needs — its pixels are pure
 // black/white u32s straight out of qr-raster.ts — and nothing more. The
 // compression rides the same CompressionStream the container layer already
-// uses (protocol.ts), so this adds no dependency and runs in Node for tests.
+// uses (protocol.ts), so this adds no dependency and runs under Deno for tests.
 
 export const PNG_SIGNATURE = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 

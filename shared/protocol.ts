@@ -57,7 +57,7 @@
 // all moved.
 
 
-import { OpticalError } from "./optical-error";
+import { OpticalError } from "./optical-error.ts";
 export const HEADER_LEN = 22;
 
 const MAGIC0 = 0xd1;

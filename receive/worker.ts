@@ -15,7 +15,8 @@
 //    Any tracked miss falls back to readFull on the same buffer, which also
 //    re-anchors the quad. Tracked is opportunistic, never load-bearing.
 
-import wasmUrl from "./wasm-url";
+import wasmUrl from "./wasm-url.ts";
+// @ts-types="../vendor/decimen-codec/decimen_codec.d.ts"
 import DecimenCodec, { type DecimenModule, type DecimenQuad } from "../vendor/decimen-codec/decimen_codec.js";
 
 const ready: Promise<DecimenModule> = DecimenCodec({

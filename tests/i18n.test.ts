@@ -7,9 +7,7 @@
 // English text, or the wording contracts drifting from their reference
 // implementations. That is what lives here.
 
-import assert from "node:assert/strict";
-import test from "node:test";
-import { readFileSync } from "node:fs";
+import { assert, assertEquals, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 
 import { DEFAULT_LOCALE, LOCALES, localeByCode, matchLocale } from "../shared/i18n/registry.ts";
 import type { Messages } from "../shared/i18n/messages.ts";
@@ -61,42 +59,42 @@ function leafKinds(node: unknown, prefix = ""): Map<string, string> {
 const tokensOf = (s: string) => [...s.matchAll(/%[A-Z][A-Z0-9_]*%/g)].map((m) => m[0]).sort();
 const tagsOf = (s: string) => [...s.matchAll(/<[^>]+>/g)].map((m) => m[0]).sort();
 
-test("the registry, the loader table, and the catalogs agree", () => {
+Deno.test("the registry, the loader table, and the catalogs agree", () => {
   const codes = LOCALES.map((l) => l.code);
-  assert.equal(new Set(codes).size, codes.length, "duplicate locale codes");
-  assert.ok(codes.includes(DEFAULT_LOCALE));
-  assert.deepEqual(Object.keys(loaders).sort(), [...codes].sort(), "loaders drift from registry");
-  assert.deepEqual(Object.keys(CATALOGS).sort(), [...codes].sort(), "test imports drift");
+  assertStrictEquals(new Set(codes).size, codes.length, "duplicate locale codes");
+  assert(codes.includes(DEFAULT_LOCALE));
+  assertEquals(Object.keys(loaders).sort(), [...codes].sort(), "loaders drift from registry");
+  assertEquals(Object.keys(CATALOGS).sort(), [...codes].sort(), "test imports drift");
   for (const [code, catalog] of Object.entries(CATALOGS)) {
-    assert.equal(catalog.meta, localeByCode(code), `${code}: meta is not its registry row`);
+    assertStrictEquals(catalog.meta, localeByCode(code), `${code}: meta is not its registry row`);
   }
   const arabic = localeByCode("ar")!;
-  assert.equal(arabic.dir, "rtl");
+  assertStrictEquals(arabic.dir, "rtl");
 });
 
-test("every catalog has exactly the English key structure", () => {
+Deno.test("every catalog has exactly the English key structure", () => {
   const want = leafKinds(en);
   for (const [code, catalog] of Object.entries(CATALOGS)) {
     const got = leafKinds(catalog);
     for (const [path, kind] of want) {
-      assert.equal(got.get(path), kind, `${code}: ${path} missing or wrong kind`);
+      assertStrictEquals(got.get(path), kind, `${code}: ${path} missing or wrong kind`);
     }
     for (const path of got.keys()) {
-      assert.ok(want.has(path), `${code}: stray key ${path}`);
+      assert(want.has(path), `${code}: stray key ${path}`);
     }
   }
 });
 
-test("no catalog is an untranslated stub of the English source", () => {
+Deno.test("no catalog is an untranslated stub of the English source", () => {
   for (const [code, catalog] of Object.entries(CATALOGS)) {
     if (code === DEFAULT_LOCALE) continue;
-    assert.notEqual(catalog.home.heroCopy, en.home.heroCopy, `${code}: heroCopy untranslated`);
-    assert.notEqual(
+    assertNotStrictEquals(catalog.home.heroCopy, en.home.heroCopy, `${code}: heroCopy untranslated`);
+    assertNotStrictEquals(
       catalog.errors.fileEmpty,
       en.errors.fileEmpty,
       `${code}: errors untranslated (stub shipped?)`,
     );
-    assert.notEqual(
+    assertNotStrictEquals(
       catalog.i18n.unreviewedNote,
       en.i18n.unreviewedNote,
       `${code}: the unreviewed note must be in its own language`,
@@ -104,16 +102,16 @@ test("no catalog is an untranslated stub of the English source", () => {
   }
 });
 
-test("%TOKEN% placeholders survive translation, key by key", () => {
+Deno.test("%TOKEN% placeholders survive translation, key by key", () => {
   const want = new Map(stringLeaves(en).map(([path, value]) => [path, tokensOf(value)]));
   for (const [code, catalog] of Object.entries(CATALOGS)) {
     for (const [path, value] of stringLeaves(catalog)) {
-      assert.deepEqual(tokensOf(value), want.get(path), `${code}: ${path} altered its tokens`);
+      assertEquals(tokensOf(value), want.get(path), `${code}: ${path} altered its tokens`);
     }
   }
 });
 
-test("only known tokens appear, and only where the build can fill them", () => {
+Deno.test("only known tokens appear, and only where the build can fill them", () => {
   // The two MAX_* tokens are fillable at runtime (standalone files); anything
   // else is build-time only and must not leak outside home.* keys, because
   // the home page is never built standalone.
@@ -121,30 +119,30 @@ test("only known tokens appear, and only where the build can fill them", () => {
   const known = new Set([...runtimeFillable, "%TOP_SPEED%"]);
   for (const [path, value] of stringLeaves(en)) {
     for (const token of tokensOf(value)) {
-      assert.ok(known.has(token), `unknown token ${token} in ${path}`);
+      assert(known.has(token), `unknown token ${token} in ${path}`);
       if (!runtimeFillable.has(token)) {
-        assert.ok(path.startsWith("home."), `${token} in ${path} — build-only token off the home page`);
+        assert(path.startsWith("home."), `${token} in ${path} — build-only token off the home page`);
       }
     }
   }
 });
 
-test("inline markup in Html-suffixed values survives translation", () => {
+Deno.test("inline markup in Html-suffixed values survives translation", () => {
   const want = new Map(
     stringLeaves(en)
       .filter(([path]) => path.endsWith("Html"))
       .map(([path, value]) => [path, tagsOf(value)]),
   );
-  assert.ok(want.size >= 2, "expected the hero and support-body Html keys");
+  assert(want.size >= 2, "expected the hero and support-body Html keys");
   for (const [code, catalog] of Object.entries(CATALOGS)) {
     for (const [path, value] of stringLeaves(catalog)) {
       if (!path.endsWith("Html")) continue;
-      assert.deepEqual(tagsOf(value), want.get(path), `${code}: ${path} altered its markup`);
+      assertEquals(tagsOf(value), want.get(path), `${code}: ${path} altered its markup`);
     }
   }
 });
 
-test("interpolating functions actually use their arguments", () => {
+Deno.test("interpolating functions actually use their arguments", () => {
   // [path, args, substrings that must appear in the result]
   const probes: [string, unknown[], string[]][] = [
     ["send.selectedFile", ["report.pdf"], ["report.pdf"]],
@@ -194,55 +192,55 @@ test("interpolating functions actually use their arguments", () => {
     for (const [path, args, expects] of probes) {
       let node: unknown = catalog;
       for (const part of path.split(".")) node = (node as Record<string, unknown>)[part];
-      assert.equal(typeof node, "function", `${code}: ${path} is not a function`);
+      assertStrictEquals(typeof node, "function", `${code}: ${path} is not a function`);
       const result = (node as (...a: unknown[]) => string)(...args);
-      assert.equal(typeof result, "string");
+      assertStrictEquals(typeof result, "string");
       for (const expect of expects) {
-        assert.ok(result.includes(expect), `${code}: ${path}(${args.join(", ")}) lost "${expect}": ${result}`);
+        assert(result.includes(expect), `${code}: ${path}(${args.join(", ")}) lost "${expect}": ${result}`);
       }
     }
   }
 });
 
-test("the English catalog IS the reference wording for errors and verdicts", () => {
+Deno.test("the English catalog IS the reference wording for errors and verdicts", () => {
   // errors: one table, shared by construction — pin the wiring.
-  assert.equal(en.errors, ENGLISH_ERRORS);
-  assert.equal(new OpticalError("fileEmpty").message, en.errors.fileEmpty);
-  assert.equal(
+  assertStrictEquals(en.errors, ENGLISH_ERRORS);
+  assertStrictEquals(new OpticalError("fileEmpty").message, en.errors.fileEmpty);
+  assertStrictEquals(
     new OpticalError("snippetOverLimit", { limit: "4 MB" }).message,
     en.errors.snippetOverLimit("4 MB"),
   );
-  assert.equal(errorText(en.errors, "sha256Failed", {}), en.errors.sha256Failed);
+  assertStrictEquals(errorText(en.errors, "sha256Failed", {}), en.errors.sha256Failed);
   // verdicts: protocol.ts keeps the reference implementation for non-web
   // clients; the en catalog must word every verdict identically.
-  assert.equal(
+  assertStrictEquals(
     en.verdicts.olderSender(2),
     frameVerdictMessage({ kind: "older-sender", version: 2 }),
   );
-  assert.equal(
+  assertStrictEquals(
     en.verdicts.newerSender(4),
     frameVerdictMessage({ kind: "newer-sender", version: 4 }),
   );
-  assert.equal(
+  assertStrictEquals(
     en.verdicts.unsupportedFlags,
     frameVerdictMessage({ kind: "unsupported-flags", flags: 1 }),
   );
 });
 
-test("every data-i18n key in the HTML pages resolves to a catalog string", () => {
+Deno.test("every data-i18n key in the HTML pages resolves to a catalog string", () => {
   const paths = new Set<string>();
   for (const page of ["index.html", "send/index.html", "receive/index.html"]) {
-    const html = readFileSync(new URL(`../${page}`, import.meta.url), "utf8");
+    const html = Deno.readTextFileSync(new URL(`../${page}`, import.meta.url));
     for (const [, key] of html.matchAll(/\sdata-i18n(?:-html)?="([^"]+)"/g)) paths.add(key!);
     for (const [, spec] of html.matchAll(/\sdata-i18n-attr="([^"]+)"/g)) {
       for (const pair of spec!.split(";")) {
         const colon = pair.indexOf(":");
-        assert.ok(colon > 0, `bad data-i18n-attr entry "${pair}" in ${page}`);
+        assert(colon > 0, `bad data-i18n-attr entry "${pair}" in ${page}`);
         paths.add(pair.slice(colon + 1));
       }
     }
   }
-  assert.ok(paths.size > 80, `suspiciously few marked strings (${paths.size})`);
+  assert(paths.size > 80, `suspiciously few marked strings (${paths.size})`);
   // The standalone build swaps two keys in; they must exist even though no
   // source page carries them.
   paths.add("send.footerHintStandalone");
@@ -252,44 +250,44 @@ test("every data-i18n key in the HTML pages resolves to a catalog string", () =>
     for (const path of paths) {
       let node: unknown = catalog;
       for (const part of path.split(".")) {
-        assert.ok(
+        assert(
           node !== null && typeof node === "object" && part in node,
           `${code}: HTML references missing key ${path}`,
         );
         node = (node as Record<string, unknown>)[part];
       }
-      assert.equal(typeof node, "string", `${code}: HTML key ${path} must be a plain string`);
+      assertStrictEquals(typeof node, "string", `${code}: HTML key ${path} must be a plain string`);
     }
   }
 });
 
-test("browser language lists land on the right locale", () => {
-  assert.equal(matchLocale(["es-MX"])?.code, "es");
-  assert.equal(matchLocale(["pt"])?.code, "pt-br");
-  assert.equal(matchLocale(["pt-PT"])?.code, "pt-br");
-  assert.equal(matchLocale(["zh"])?.code, "zh-hans");
-  assert.equal(matchLocale(["zh-CN"])?.code, "zh-hans");
-  assert.equal(matchLocale(["en-GB", "fr"])?.code, "en");
-  assert.equal(matchLocale(["da", "sv"]), undefined);
-  assert.equal(matchLocale([]), undefined);
-  assert.equal(matchLocale(["AR"])?.code, "ar");
+Deno.test("browser language lists land on the right locale", () => {
+  assertStrictEquals(matchLocale(["es-MX"])?.code, "es");
+  assertStrictEquals(matchLocale(["pt"])?.code, "pt-br");
+  assertStrictEquals(matchLocale(["pt-PT"])?.code, "pt-br");
+  assertStrictEquals(matchLocale(["zh"])?.code, "zh-hans");
+  assertStrictEquals(matchLocale(["zh-CN"])?.code, "zh-hans");
+  assertStrictEquals(matchLocale(["en-GB", "fr"])?.code, "en");
+  assertStrictEquals(matchLocale(["da", "sv"]), undefined);
+  assertStrictEquals(matchLocale([]), undefined);
+  assertStrictEquals(matchLocale(["AR"])?.code, "ar");
 });
 
-test("fillTokens fills what it knows and leaves what it doesn't", () => {
-  assert.equal(fillTokens("up to %MAX% now", { MAX: "64 MB" }), "up to 64 MB now");
-  assert.equal(fillTokens("%UNKNOWN% stays", {}), "%UNKNOWN% stays");
-  assert.equal(fillTokens("100% plain percent", { X: "y" }), "100% plain percent");
+Deno.test("fillTokens fills what it knows and leaves what it doesn't", () => {
+  assertStrictEquals(fillTokens("up to %MAX% now", { MAX: "64 MB" }), "up to 64 MB now");
+  assertStrictEquals(fillTokens("%UNKNOWN% stays", {}), "%UNKNOWN% stays");
+  assertStrictEquals(fillTokens("100% plain percent", { X: "y" }), "100% plain percent");
 });
 
-test("unreviewed locales carry a note; reviewed ones carry none", () => {
+Deno.test("unreviewed locales carry a note; reviewed ones carry none", () => {
   for (const locale of LOCALES) {
     const catalog = CATALOGS[locale.code]!;
     // CJK says in ~18 characters what English needs 90 for — the floor only
     // catches an emptied-out value, not verbosity.
-    assert.ok(catalog.i18n.unreviewedNote.length > 8, `${locale.code}: note too short`);
-    assert.ok(catalog.i18n.unreviewedLinkText.length > 2);
+    assert(catalog.i18n.unreviewedNote.length > 8, `${locale.code}: note too short`);
+    assert(catalog.i18n.unreviewedLinkText.length > 2);
   }
   // English is the source text — reviewed by construction. Everything else
   // starts unreviewed until a native speaker flips its registry flag.
-  assert.equal(localeByCode("en")!.reviewed, true);
+  assertStrictEquals(localeByCode("en")!.reviewed, true);
 });

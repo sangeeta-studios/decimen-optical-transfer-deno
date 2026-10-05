@@ -5,7 +5,7 @@ Two separate things share the name:
 - **Live diagnostics panel** — the collapsible capture/decode fps, goodput,
   frames, and K readout in the receiver UI. Always shipped; documented in
   [Receiving](../user/receiving.md).
-- **The diagnostics run rig** (`npm run diagnostics`) — a dev-server mode
+- **The diagnostics run rig** (`deno task diagnostics`) — a dev-server mode
   that turns every completed transfer into one structured JSON report in
   your terminal, so A/B tuning runs are comparable without squinting at a
   phone. This page is about the rig.
@@ -13,7 +13,7 @@ Two separate things share the name:
 ## Running it
 
 ```bash
-npm run diagnostics    # vite --mode diagnostics
+deno task diagnostics    # vite --mode diagnostics
 ```
 
 The mode loads `.env.diagnostics` (`VITE_DIAGNOSTICS=1`). Open the sender
@@ -88,7 +88,7 @@ sha-256 pinned in `benchmarks/records.json`. Regenerating that file breaks
 comparability — don't.
 
 ```bash
-npm run benchmark    # dev server, capture on, sender locked to the payload
+deno task benchmark    # dev server, capture on, sender locked to the payload
 ```
 
 Benchmark mode presets the sender to 4 codes (2×2); the sender's stream
@@ -101,7 +101,7 @@ is stamped (`_meta`: app version, receipt time) and saved to the gitignored
 `scratch/diagnostics-runs/`. Then:
 
 ```bash
-npm run benchmark:promote
+deno task benchmark:promote
 ```
 
 No arguments. Promotion scans the captured runs, keeps only successful
@@ -126,7 +126,7 @@ the remembered mapping or a UA guess.
 Each taken record copies its full report to `benchmarks/runs/` as the
 receipt and updates `benchmarks/records.json` (the authoritative file —
 the README badge reads it directly), then regenerates the README's
-"Measured speed" section (`npm run benchmark:readme` re-renders it on its
+"Measured speed" section (`deno task benchmark:readme` re-renders it on its
 own; CI diffs the regenerated section so prose can never drift from the
 data). Records are declared by a human, never auto-committed — the rig
 measures, you decide when to promote.

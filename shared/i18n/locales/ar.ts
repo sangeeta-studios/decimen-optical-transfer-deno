@@ -3,8 +3,8 @@
 // When a native review lands, flip `reviewed: true` for "ar" in
 // shared/i18n/registry.ts to remove the on-page unreviewed note.
 
-import type { Messages } from "../messages";
-import { localeByCode } from "../registry";
+import type { Messages } from "../messages.ts";
+import { localeByCode } from "../registry.ts";
 
 export const messages: Messages = {
   meta: localeByCode("ar")!,
@@ -178,7 +178,7 @@ export const messages: Messages = {
     settingsApplied: "تُطبَّق عند تشغيل الكاميرا.",
     errSecureContext:
       "تحتاج الكاميرا إلى سياق آمن — يجب أن تُقدَّم هذه الصفحة عبر https " +
-      "لاستخدام الكاميرا من جهاز آخر. الأمر `npm run dev` يوفّر ذلك أصلًا.",
+      "لاستخدام الكاميرا من جهاز آخر. الأمر `deno task dev` يوفّر ذلك أصلًا.",
     errPermissionDenied: "رُفض إذن الكاميرا — اسمح به ثم انقر «تشغيل الكاميرا» مرة أخرى.",
     errCameraGone:
       "هذه الكاميرا لم تعد متاحة — أعد ضبط الكاميرا إلى «تلقائي» ثم انقر «تشغيل الكاميرا».",

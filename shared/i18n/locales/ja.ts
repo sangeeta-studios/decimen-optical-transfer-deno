@@ -3,8 +3,8 @@
 // Once a native review lands, flip `reviewed: true` for "ja" in
 // shared/i18n/registry.ts to remove the on-page unreviewed note.
 
-import type { Messages } from "../messages";
-import { localeByCode } from "../registry";
+import type { Messages } from "../messages.ts";
+import { localeByCode } from "../registry.ts";
 
 export const messages: Messages = {
   meta: localeByCode("ja")!,
@@ -180,7 +180,7 @@ export const messages: Messages = {
     settingsApplied: "カメラの開始時に適用されます。",
     errSecureContext:
       "カメラにはセキュアコンテキストが必要です。別のデバイスからカメラを使うには、" +
-      "このページを https で配信する必要があります。`npm run dev` は最初から https です。",
+      "このページを https で配信する必要があります。`deno task dev` は最初から https です。",
     errPermissionDenied:
       "カメラの使用が許可されませんでした。許可してから、もう一度「カメラを開始」をタップしてください。",
     errCameraGone:

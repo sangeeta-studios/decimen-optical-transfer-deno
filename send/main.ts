@@ -12,8 +12,8 @@
 // - Error correction stays at L by default: the fountain layer already
 //   handles erasures, and a frame is either decoded whole or discarded.
 
-import { fitQrDisplaySize } from "../shared/display";
-import { gridDims, rasterizeQr } from "../shared/qr-raster";
+import { fitQrDisplaySize } from "../shared/display.ts";
+import { gridDims, rasterizeQr } from "../shared/qr-raster.ts";
 import {
   fillRuntimeTokens,
   fmtInt,
@@ -23,15 +23,15 @@ import {
   initI18n,
   localizeError,
   msg,
-} from "../shared/i18n";
-import { QUIET_ZONE_MODULES as MARGIN, createFrameQr, type EccLevel, type FrameQr } from "./qr-frame";
+} from "../shared/i18n/index.ts";
+import { QUIET_ZONE_MODULES as MARGIN, createFrameQr, type EccLevel, type FrameQr } from "./qr-frame.ts";
 import {
   ZIP_MAX_FRAMES,
   estimateExportBytes,
   exportAnimation,
   planExport,
   type ExportFormat,
-} from "./export";
+} from "./export.ts";
 import {
   MAX_SOURCE_BLOCKS,
   blockLength,
@@ -39,9 +39,9 @@ import {
   minimumFrameBytes,
   smallestSufficientFrameSize,
   sourceBlockCount,
-} from "../shared/frame-capacity";
-import { LTEncoder } from "../shared/fountain";
-import { MAX_SNIPPET_BYTES, packSnippet } from "../shared/snippet";
+} from "../shared/frame-capacity.ts";
+import { LTEncoder } from "../shared/fountain.ts";
+import { MAX_SNIPPET_BYTES, packSnippet } from "../shared/snippet.ts";
 import {
   MAX_FILE_BYTES,
   MAX_FILE_LABEL,
@@ -50,20 +50,20 @@ import {
   packFrame,
   type FrameHeader,
   type PackedOpticalFile,
-} from "../shared/protocol";
-import { statusLine } from "../shared/status-line";
-import { requestScreenWakeLock } from "../shared/wake-lock";
-import { wireShareDialog } from "../shared/share-dialog";
+} from "../shared/protocol.ts";
+import { statusLine } from "../shared/status-line.ts";
+import { requestScreenWakeLock } from "../shared/wake-lock.ts";
+import { wireShareDialog } from "../shared/share-dialog.ts";
 
 await initI18n();
 
 const LOOKAHEAD = 3;
 
-// `npm run demo` (vite --mode demo). Locks the sender to the two bundled
+// `deno task demo` (vite --mode demo). Locks the sender to the two bundled
 // payloads so the app can be left running in front of strangers without
 // handing them a file picker into the host machine.
 const DEMO = import.meta.env.VITE_DEMO === "1";
-// `npm run benchmark` (vite --mode benchmark). Same shape as demo mode but
+// `deno task benchmark` (vite --mode benchmark). Same shape as demo mode but
 // locked to the canonical 1 MB benchmark payload, so every record run
 // transfers the exact bytes the promotion gate pins (build/benchmarks.ts).
 const BENCHMARK = import.meta.env.VITE_BENCHMARK === "1";
@@ -650,7 +650,7 @@ async function startStream(revealStage = false) {
       share.textContent = msg.send.shareReceiverLink;
       share.addEventListener("click", openShareDialog);
       specs.append(share);
-      // npm run diagnostics: announce this stream's settings so the server
+      // deno task diagnostics: announce this stream's settings so the server
       // log can pair them with the receiver's end-of-run report — the
       // receiver only ever learns k and blockLen from the wire, never the
       // knobs that produced them. Correlate the two by sessionId. The DEV

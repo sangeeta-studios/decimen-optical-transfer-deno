@@ -11,19 +11,19 @@
 // Explicit literals rather than import(`./locales/${c}`) because Vite needs
 // static analysis to split them.
 
-import type { Messages } from "./messages";
+import type { Messages } from "./messages.ts";
 
 export const loaders: Record<string, () => Promise<{ messages: Messages }>> = {
-  en: () => import("./locales/en"),
-  es: () => import("./locales/es"),
-  "pt-br": () => import("./locales/pt-br"),
-  fr: () => import("./locales/fr"),
-  de: () => import("./locales/de"),
-  it: () => import("./locales/it"),
-  ru: () => import("./locales/ru"),
-  hi: () => import("./locales/hi"),
-  "zh-hans": () => import("./locales/zh-hans"),
-  ja: () => import("./locales/ja"),
-  ko: () => import("./locales/ko"),
-  ar: () => import("./locales/ar"),
+  en: () => import("./locales/en.ts"),
+  es: () => import("./locales/es.ts"),
+  "pt-br": () => import("./locales/pt-br.ts"),
+  fr: () => import("./locales/fr.ts"),
+  de: () => import("./locales/de.ts"),
+  it: () => import("./locales/it.ts"),
+  ru: () => import("./locales/ru.ts"),
+  hi: () => import("./locales/hi.ts"),
+  "zh-hans": () => import("./locales/zh-hans.ts"),
+  ja: () => import("./locales/ja.ts"),
+  ko: () => import("./locales/ko.ts"),
+  ar: () => import("./locales/ar.ts"),
 };

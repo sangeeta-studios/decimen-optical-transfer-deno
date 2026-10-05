@@ -18,13 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: denoland/setup-deno@v2
         with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm run build:all
+          deno-version-file: .dvmrc
+          cache: true
+      - run: deno install --frozen
+      - run: deno task test
+      - run: deno task build:all
       # A regression here means the inlined worker or wasm leaked into the
       # served bundle — see build/use-inline-variants.ts. The bound is an
       # order-of-magnitude tripwire, not a byte budget: the leak it exists to
@@ -72,5 +72,5 @@ jobs:
       # the section or forgot to run benchmark:readme after promoting.
       - name: README benchmarks section matches records
         run: |
-          npm run benchmark:readme
+          deno task benchmark:readme
           git diff --exit-code README.md

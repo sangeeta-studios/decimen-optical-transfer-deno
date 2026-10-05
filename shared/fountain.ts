@@ -15,7 +15,7 @@
 // receiver) may differ by an ulp and silently desynchronize the streams.
 // dlog() below uses only exactly-specified IEEE-754 ops.
 
-import { splitmix32 } from "./protocol";
+import { splitmix32 } from "./protocol.ts";
 
 const LN2 = 0.6931471805599453;
 

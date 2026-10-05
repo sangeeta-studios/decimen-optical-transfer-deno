@@ -2,7 +2,7 @@
 // this module for support.inline.ts (see build/use-inline-variants.ts), so a
 // downloaded artifact never solicits; the code is not even parsed there.
 // One quiet line, shown only after the app has actually delivered a file.
-import { msg } from "../shared/i18n";
+import { msg } from "../shared/i18n/index.ts";
 
 export function supportLink(): HTMLElement | null {
   const p = document.createElement("p");

@@ -2,8 +2,8 @@
 // speaker. Once a native review lands, flip `reviewed: true` for "ru" in
 // shared/i18n/registry.ts — that removes the on-page unreviewed note.
 
-import type { Messages } from "../messages";
-import { localeByCode } from "../registry";
+import type { Messages } from "../messages.ts";
+import { localeByCode } from "../registry.ts";
 
 export const messages: Messages = {
   meta: localeByCode("ru")!,
@@ -184,7 +184,7 @@ export const messages: Messages = {
     settingsApplied: "Применяется при запуске камеры.",
     errSecureContext:
       "камере нужен защищённый контекст — страница должна открываться по https, " +
-      "чтобы камера работала с другого устройства. `npm run dev` уже так делает.",
+      "чтобы камера работала с другого устройства. `deno task dev` уже так делает.",
     errPermissionDenied:
       "нет доступа к камере — разрешите его и снова нажмите «Включить камеру».",
     errCameraGone:

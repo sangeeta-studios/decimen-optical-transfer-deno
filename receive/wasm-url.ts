@@ -2,6 +2,7 @@
 // tracked fast path, see ../vendor/decimen-codec) as a
 // separate asset, which the service worker precaches. Standalone builds swap
 // this for wasm-url.inline.ts.
+// @ts-types="./asset-url.d.ts"
 import wasmUrl from "../vendor/decimen-codec/decimen_codec.wasm?url";
 
 export default wasmUrl;
